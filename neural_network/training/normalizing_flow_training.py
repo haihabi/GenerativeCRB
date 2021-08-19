@@ -1,21 +1,28 @@
 import common
 import constants
 from tqdm import tqdm
+from neural_network.architecture import normalizing_flows as nf
 from neural_network.training.single_network_optimization import SingleNetworkOptimization
+from torch import nn
 
 
-def regression_training(dataset_loader, regression_network, optimizer: SingleNetworkOptimization, loss_function):
+def flow_train(flow: nf.NormalizingFlow, dataset_loader, optimizer: SingleNetworkOptimization):
     def epoch_loop():
         ma = common.MetricAveraging()
         for x, y in tqdm(dataset_loader):
             optimizer.opt.zero_grad()
             x = x.to(constants.DEVICE)
             y = y.to(constants.DEVICE)
-            y_hat = regression_network(x)
-            loss = loss_function(y, y_hat)
-            loss.backward()
+
+            nll = flow.nll(x, y).mean()
+
+            nll.backward()
+            nn.utils.clip_grad_norm_(
+                flow.parameters(),
+                0.1
+            )
             optimizer.opt.step()
-            ma.update_metrics({'loss': loss})
+            ma.update_metrics({'nll': nll})
         return ma.result
 
     for i in range(optimizer.n_epochs):

@@ -1,6 +1,7 @@
 import torch
 import common
 import constants
+import numpy as np
 from tqdm import tqdm
 
 
@@ -9,6 +10,17 @@ class MultiplicationModel(object):
         self.dim = dim
         self.theta_min = theta_min
         self.theta_max = theta_max
+
+    @property
+    def parameter_vector_length(self):
+        return 1
+
+    def pdf(self, r, theta):
+        scale = 3 * np.sqrt(2 * np.pi)
+        r23 = np.power(np.power(r, 2.0), 1 / 3)
+        theta_r_factor = np.power(theta, -1 / 3) / r23
+        exp_value = np.exp(-0.5 * r23 / (2 * np.power(theta, 2 / 3)))
+        return exp_value * theta_r_factor / scale
 
     def parameter_range(self, n_steps):
         return self.theta_min + (self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,

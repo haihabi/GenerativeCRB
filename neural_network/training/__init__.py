@@ -1,2 +1,3 @@
 from neural_network.training.regression_training import regression_training
-from neural_network.training.single_network_optimization import SingleNetworkOptimization
+from neural_network.training.single_network_optimization import SingleNetworkOptimization, OptimizerType
+from neural_network.training.normalizing_flow_training import flow_train
