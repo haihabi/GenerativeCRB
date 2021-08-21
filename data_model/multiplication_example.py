@@ -3,6 +3,24 @@ import common
 import constants
 import numpy as np
 from tqdm import tqdm
+from torch import nn
+
+
+class MultiplicationFlow(nn.Module):
+
+    def __init__(self, dim):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, x, cond=None):
+        z = torch.sign(x) * torch.pow(torch.abs(x / cond), 1 / 3)
+        log_det = torch.log(torch.prod((1 / 3) * torch.pow(cond, -1 / 3) * torch.pow(torch.pow(x, 2.0), -1 / 3), dim=1))
+        return z, log_det
+
+    def backward(self, z, cond=None):
+        x = torch.pow(z, 3.0) * cond
+        log_det = torch.log(torch.prod(3 * torch.pow(z, 2.0) * cond, dim=1))
+        return x, log_det
 
 
 class MultiplicationModel(object):
@@ -10,6 +28,9 @@ class MultiplicationModel(object):
         self.dim = dim
         self.theta_min = theta_min
         self.theta_max = theta_max
+
+    def get_optimal_model(self):
+        return MultiplicationFlow(self.dim)
 
     @property
     def parameter_vector_length(self):

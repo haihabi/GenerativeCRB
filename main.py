@@ -5,13 +5,18 @@ import neural_network
 from matplotlib import pyplot as plt
 import numpy as np
 import constants
+import normalizing_flow as nf
+from torch.distributions import MultivariateNormal
+import gcrb
+import itertools
 
 
 def config():
     cr = common.ConfigReader()
     cr.add_parameter('dataset_size', default=50000, type=int)
+    cr.add_parameter('val_dataset_size', default=10000, type=int)
     cr.add_parameter('batch_size', default=64, type=int)
-    cr.add_parameter('dim', default=4, type=int)
+    cr.add_parameter('dim', default=2, type=int)
     #############################################
     # Regression Network
     #############################################
@@ -25,13 +30,14 @@ def config():
     return cr.read_parameters()
 
 
-def check_example(current_data_model, in_regression_network, in_flow):
+def check_example(current_data_model, in_regression_network, optimal_model, in_flow_model):
     crb_list = []
     mse_regression_list = []
     parameter_list = []
     ml_mse_list = []
+    gcrb_opt_list = []
+    gcrb_flow_list = []
     in_regression_network.eval()
-    in_flow.eval()
     for theta in current_data_model.parameter_range(20):
         x = current_data_model.generate_data(512, theta)
         theta_hat = in_regression_network(x)
@@ -39,46 +45,57 @@ def check_example(current_data_model, in_regression_network, in_flow):
         mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
         ml_mse_list.append(torch.pow(theta_ml - theta, 2.0).mean().item())
         crb_list.append(current_data_model.crb(theta).item())
+        fim = gcrb.compute_fim(optimal_model, theta.reshape([1]), batch_size=512)
+        grcb_opt = torch.linalg.inv(fim)
+        fim = gcrb.compute_fim(in_flow_model, theta.reshape([1]), batch_size=512)
+        grcb_flow = torch.linalg.inv(fim)
         parameter_list.append(theta.item())
-    plt.subplot(2, 2, 1)
+        gcrb_opt_list.append(grcb_opt.item())
+        gcrb_flow_list.append(grcb_flow.item())
+
     plt.plot(parameter_list, crb_list, label='CRB')
+    plt.plot(parameter_list, gcrb_opt_list, label='GCRB Optimal NF')
+    plt.plot(parameter_list, gcrb_flow_list, label='GCRB NF')
     plt.plot(parameter_list, mse_regression_list, label='Regression Network')
     plt.plot(parameter_list, ml_mse_list, label='ML Estimator Error')
     plt.grid()
     plt.legend()
     plt.xlabel(r"$\theta$")
-    plt.subplot(2, 2, 2)
-    theta = 1.1
-    r = np.linspace(-2, 2, 1000)
-    x = torch.linspace(-2, 2, 1000, device=constants.DEVICE).reshape([-1, 1]).repeat([1, 4])
-    y = torch.ones([1000, 1], device=constants.DEVICE) * theta
-    nll_value = in_flow.nll(x, y)
-    print(nll_value)
-    print(x.shape)
-    print(y.shape)
-    print(nll_value.shape)
-
-    p_nf = torch.exp(-nll_value).detach().cpu().numpy()
-    p_r = current_data_model.pdf(r, theta)
-
-    plt.plot(r, p_r, label='Data PDF')
-    plt.subplot(2, 2, 3)
-    plt.plot(r, p_nf, label='Flow PDF')
-    plt.legend()
-    plt.grid()
     plt.show()
+
+
+def generate_flow_model(in_param):
+    nfs_flow = nf.NSF_CL if True else nf.NSF_AR
+    flows = [nfs_flow(dim=in_param.dim, K=8, B=3, hidden_dim=16) for _ in range(3)]
+    # flows = [MAF(dim=2, parity=i%2) for i in range(4)]
+    convs = [nf.Invertible1x1Conv(dim=in_param.dim) for _ in flows]
+    norms = [nf.ActNorm(dim=in_param.dim) for _ in flows]
+    affine = [nf.AffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True) for i, _ in enumerate(flows)]
+
+    flows = list(itertools.chain(*zip(norms, convs, affine, flows)))
+    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(2), torch.eye(2)), flows)
 
 
 if __name__ == '__main__':
     run_parameters = config()
     dm = data_model.MultiplicationModel(run_parameters.dim, 0.2, 10)
+    prior = MultivariateNormal(torch.zeros(2), torch.eye(2))
+    model_opt = nf.NormalizingFlowModel(prior, [dm.get_optimal_model()])
     training_data = dm.build_dataset(run_parameters.dataset_size)
-    dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
-                                                 shuffle=True, num_workers=0)
-    regression_network, flow = neural_network.get_network(run_parameters, dm)
+    validation_data = dm.build_dataset(run_parameters.val_dataset_size)
+    training_dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
+                                                          shuffle=True, num_workers=0)
+    validation_dataset_loader = torch.utils.data.DataLoader(validation_data, batch_size=run_parameters.batch_size,
+                                                            shuffle=True, num_workers=0)
+    regression_network = neural_network.get_network(run_parameters, dm)
     optimizer = neural_network.SingleNetworkOptimization(regression_network, run_parameters.n_epochs)
-    neural_network.regression_training(dataset_loader, regression_network, optimizer, torch.nn.MSELoss())
-    optimizer_flow = neural_network.SingleNetworkOptimization(flow, run_parameters.n_epochs_flow, lr=1e-4,
-                                                              optimizer_type=neural_network.OptimizerType.SGD)
-    neural_network.flow_train(flow, dataset_loader, optimizer_flow)
-    check_example(dm, regression_network, flow)
+    neural_network.regression_training(training_dataset_loader, regression_network, optimizer, torch.nn.MSELoss())
+    flow_model = generate_flow_model(run_parameters)
+    optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow, lr=1e-3,
+                                                              optimizer_type=neural_network.OptimizerType.Adam,
+                                                              weight_decay=1e-5)
+    flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader, validation_dataset_loader,
+                                              optimizer_flow, 60)
+
+    # neural_network.flow_train(flow, dataset_loader, optimizer_flow)
+    check_example(dm, regression_network, model_opt, flow_model)
