@@ -3,12 +3,12 @@ import common
 import data_model
 import neural_network
 from matplotlib import pyplot as plt
-import numpy as np
-import constants
+
 import normalizing_flow as nf
 from torch.distributions import MultivariateNormal
 import gcrb
 import itertools
+import os
 
 
 def config():
@@ -17,6 +17,7 @@ def config():
     cr.add_parameter('val_dataset_size', default=10000, type=int)
     cr.add_parameter('batch_size', default=64, type=int)
     cr.add_parameter('dim', default=2, type=int)
+    cr.add_parameter('base_log_folder', default="/Users/haihabi/projects/GenerativeCRB/logs", type=str)
     #############################################
     # Regression Network
     #############################################
@@ -95,7 +96,10 @@ if __name__ == '__main__':
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=1e-5)
     flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader, validation_dataset_loader,
-                                              optimizer_flow, 60)
+                                              optimizer_flow, 120)
+
+    model_path = run_parameters.base_log_folder
+    torch.save(flow_model.state_dict(), os.path.join(model_path, "flow_best.pt"))
 
     # neural_network.flow_train(flow, dataset_loader, optimizer_flow)
     check_example(dm, regression_network, model_opt, flow_model)
