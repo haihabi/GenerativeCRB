@@ -1,5 +1,5 @@
+import numpy as np
 from torch.utils.data.dataset import Dataset
-from tqdm import tqdm
 
 
 class NumpyDataset(Dataset):
@@ -15,3 +15,7 @@ class NumpyDataset(Dataset):
 
     def __len__(self):
         return self.n
+
+    def get_second_order_stat(self):
+        x = np.stack(self.data)
+        return np.mean(x, axis=0), np.std(x, axis=0)

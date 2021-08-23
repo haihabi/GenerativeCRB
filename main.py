@@ -9,6 +9,7 @@ from torch.distributions import MultivariateNormal
 import gcrb
 import itertools
 import os
+import constants
 
 
 def config():
@@ -17,7 +18,7 @@ def config():
     cr.add_parameter('val_dataset_size', default=10000, type=int)
     cr.add_parameter('batch_size', default=64, type=int)
     cr.add_parameter('dim', default=2, type=int)
-    cr.add_parameter('base_log_folder', default="/Users/haihabi/projects/GenerativeCRB/logs", type=str)
+    cr.add_parameter('base_log_folder', default="C:\work\GenerativeCRB\logs", type=str)
     #############################################
     # Regression Network
     #############################################
@@ -65,7 +66,7 @@ def check_example(current_data_model, in_regression_network, optimal_model, in_f
     plt.show()
 
 
-def generate_flow_model(in_param):
+def generate_flow_model(in_param, in_mu, in_std):
     nfs_flow = nf.NSF_CL if True else nf.NSF_AR
     flows = [nfs_flow(dim=in_param.dim, K=8, B=3, hidden_dim=16) for _ in range(3)]
     # flows = [MAF(dim=2, parity=i%2) for i in range(4)]
@@ -73,8 +74,8 @@ def generate_flow_model(in_param):
     norms = [nf.ActNorm(dim=in_param.dim) for _ in flows]
     affine = [nf.AffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True) for i, _ in enumerate(flows)]
 
-    flows = list(itertools.chain(*zip(norms, convs, affine, flows)))
-    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(2), torch.eye(2)), flows)
+    flows = [nf.InputNorm(in_mu, in_std), *list(itertools.chain(*zip(norms, convs, affine, flows)))]
+    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(2), torch.eye(2)), flows).to(constants.DEVICE)
 
 
 if __name__ == '__main__':
@@ -83,6 +84,7 @@ if __name__ == '__main__':
     prior = MultivariateNormal(torch.zeros(2), torch.eye(2))
     model_opt = nf.NormalizingFlowModel(prior, [dm.get_optimal_model()])
     training_data = dm.build_dataset(run_parameters.dataset_size)
+    mu, std = training_data.get_second_order_stat()
     validation_data = dm.build_dataset(run_parameters.val_dataset_size)
     training_dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
                                                           shuffle=True, num_workers=0)
@@ -91,7 +93,7 @@ if __name__ == '__main__':
     regression_network = neural_network.get_network(run_parameters, dm)
     optimizer = neural_network.SingleNetworkOptimization(regression_network, run_parameters.n_epochs)
     neural_network.regression_training(training_dataset_loader, regression_network, optimizer, torch.nn.MSELoss())
-    flow_model = generate_flow_model(run_parameters)
+    flow_model = generate_flow_model(run_parameters, mu, std)
     optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow, lr=1e-3,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=1e-5)

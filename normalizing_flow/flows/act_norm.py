@@ -1,5 +1,6 @@
 import torch
 from normalizing_flow.flows.affine import AffineConstantFlow
+from torch import nn
 
 
 class ActNorm(AffineConstantFlow):
@@ -21,3 +22,20 @@ class ActNorm(AffineConstantFlow):
             self.t.data = (-(x * torch.exp(self.s)).mean(dim=0, keepdim=True)).detach()
             self.data_dep_init_done = True
         return super().forward(x)
+
+
+class InputNorm(nn.Module):
+    def __init__(self, mu, std):
+        super().__init__()
+        self.t = nn.Parameter(torch.from_numpy(mu).reshape([1, -1]), requires_grad=False)
+        self.s = nn.Parameter(torch.from_numpy(std).reshape([1, -1]), requires_grad=False)
+
+    def forward(self, x, cond=None):
+        z = (x - self.t) / self.s
+        log_det = -torch.sum(torch.log(self.s), dim=1)
+        return z, log_det
+
+    def backward(self, z, cond=None):
+        x = self.s * z + self.t
+        log_det = torch.sum(torch.log(self.s), dim=1)
+        return x, log_det
