@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import data_model
 import normalizing_flow as nf
@@ -12,8 +13,9 @@ if __name__ == '__main__':
     dm = data_model.MultiplicationModel(param.dim, 0.2, 10)
     prior = MultivariateNormal(torch.zeros(2), torch.eye(2))
     model_opt = nf.NormalizingFlowModel(prior, [dm.get_optimal_model()])
-    model = generate_flow_model(param)
+    model = generate_flow_model(param, np.zeros(2).astype("float32"), np.zeros(2).astype("float32"))
     model.load_state_dict(torch.load('/Users/haihabi/projects/GenerativeCRB/logs/flow_best.pt'))
+    model.eval()
     # model.eval()
     mse_regression_list = []
     parameter_list = []
@@ -39,9 +41,10 @@ if __name__ == '__main__':
         gcrb_list.append(grcb.item())
         # gcrb_flow_list.append(grcb_flow.item())
 
-    plt.plot(parameter_list, crb_list)
-    plt.plot(parameter_list, gcrb_opt_list)
-    plt.plot(parameter_list, gcrb_list)
+    plt.plot(parameter_list, crb_list, label="CRB")
+    plt.plot(parameter_list, gcrb_opt_list, label="NF Optimal")
+    plt.plot(parameter_list, gcrb_list, label="NF")
     plt.grid()
+    plt.legend()
     plt.show()
     print("a")

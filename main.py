@@ -14,11 +14,11 @@ import constants
 
 def config():
     cr = common.ConfigReader()
-    cr.add_parameter('dataset_size', default=50000, type=int)
+    cr.add_parameter('dataset_size', default=200000, type=int)
     cr.add_parameter('val_dataset_size', default=10000, type=int)
     cr.add_parameter('batch_size', default=64, type=int)
     cr.add_parameter('dim', default=2, type=int)
-    cr.add_parameter('base_log_folder', default="C:\work\GenerativeCRB\logs", type=str)
+    cr.add_parameter('base_log_folder', default="/Users/haihabi/projects/GenerativeCRB/logs", type=str)
     #############################################
     # Regression Network
     #############################################
@@ -74,7 +74,7 @@ def generate_flow_model(in_param, in_mu, in_std):
     norms = [nf.ActNorm(dim=in_param.dim) for _ in flows]
     affine = [nf.AffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True) for i, _ in enumerate(flows)]
 
-    flows = [nf.InputNorm(in_mu, in_std), *list(itertools.chain(*zip(norms, convs, affine, flows)))]
+    flows = [nf.InputNorm(in_mu, in_std), *list(itertools.chain(*zip(norms, convs, affine, flows)))[1:]]
     return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(2), torch.eye(2)), flows).to(constants.DEVICE)
 
 
@@ -85,6 +85,8 @@ if __name__ == '__main__':
     model_opt = nf.NormalizingFlowModel(prior, [dm.get_optimal_model()])
     training_data = dm.build_dataset(run_parameters.dataset_size)
     mu, std = training_data.get_second_order_stat()
+    print(mu)
+    print(std)
     validation_data = dm.build_dataset(run_parameters.val_dataset_size)
     training_dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
                                                           shuffle=True, num_workers=0)
@@ -98,7 +100,7 @@ if __name__ == '__main__':
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=1e-5)
     flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader, validation_dataset_loader,
-                                              optimizer_flow, 120)
+                                              optimizer_flow, 45)
 
     model_path = run_parameters.base_log_folder
     torch.save(flow_model.state_dict(), os.path.join(model_path, "flow_best.pt"))

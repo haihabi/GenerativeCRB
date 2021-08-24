@@ -18,4 +18,4 @@ class NumpyDataset(Dataset):
 
     def get_second_order_stat(self):
         x = np.stack(self.data)
-        return np.mean(x, axis=0), np.std(x, axis=0)
+        return np.min(x, axis=0).astype("float32"), (np.max(x, axis=0) - np.min(x, axis=0)).astype("float32")

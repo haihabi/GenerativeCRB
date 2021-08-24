@@ -10,7 +10,8 @@ class OptimizerType(Enum):
 
 class SingleNetworkOptimization(object):
     def __init__(self, network: torch.nn.Module, n_epochs: int,
-                 lr=1e-4, weight_decay=1e-3, optimizer_type: OptimizerType = OptimizerType.SGD, grad_norm_clipping=10):
+                 lr=1e-4, weight_decay=1e-3, optimizer_type: OptimizerType = OptimizerType.SGD, grad_norm_clipping=10,
+                 betas=(0.9, 0.999)):
         self.n_epochs = n_epochs
         self.network = network
         self.optimizer_type = optimizer_type
@@ -18,7 +19,7 @@ class SingleNetworkOptimization(object):
             self.opt = torch.optim.SGD(network.parameters(), lr=lr, momentum=0.0, nesterov=False,
                                        weight_decay=weight_decay)
         elif self.optimizer_type == OptimizerType.Adam:
-            self.opt = torch.optim.Adam(network.parameters(), lr=lr, weight_decay=weight_decay)
+            self.opt = torch.optim.Adam(network.parameters(), lr=lr, weight_decay=weight_decay, betas=betas)
         else:
             raise NotImplemented
         self.grad_norm_clipping = grad_norm_clipping
