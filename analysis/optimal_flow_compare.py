@@ -14,9 +14,13 @@ if __name__ == '__main__':
     prior = MultivariateNormal(torch.zeros(2), torch.eye(2))
     model_opt = nf.NormalizingFlowModel(prior, [dm.get_optimal_model()])
     model = generate_flow_model(param, np.zeros(2).astype("float32"), np.zeros(2).astype("float32"))
-    model.load_state_dict(torch.load('/Users/haihabi/projects/GenerativeCRB/logs/flow_best.pt'))
+    model.load_state_dict(torch.load(f"C:\work\GenerativeCRB\logs\\flow_best.pt"))
     model.eval()
     # model.eval()
+
+    d = model.sample(1000, torch.tensor(1.0).repeat([1000]).reshape([-1, 1]))[-1][:, 0].detach().numpy()
+    plt.hist(d)
+    plt.show()
     mse_regression_list = []
     parameter_list = []
     gcrb_opt_list = []
@@ -29,6 +33,7 @@ if __name__ == '__main__':
         # mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
         # ml_mse_list.append(torch.pow(theta_ml - theta, 2.0).mean().item())
         crb_list.append(dm.crb(theta).item())
+        # theta.ze
         fim = gcrb.compute_fim(model_opt, theta.reshape([1]), batch_size=4096)  # 2048
         grcb_opt = torch.linalg.inv(fim)
 

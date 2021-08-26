@@ -14,11 +14,11 @@ import constants
 
 def config():
     cr = common.ConfigReader()
-    cr.add_parameter('dataset_size', default=200000, type=int)
+    cr.add_parameter('dataset_size', default=50000, type=int)
     cr.add_parameter('val_dataset_size', default=10000, type=int)
     cr.add_parameter('batch_size', default=64, type=int)
     cr.add_parameter('dim', default=2, type=int)
-    cr.add_parameter('base_log_folder', default="/Users/haihabi/projects/GenerativeCRB/logs", type=str)
+    cr.add_parameter('base_log_folder', default="C:\work\GenerativeCRB\logs", type=str)
     #############################################
     # Regression Network
     #############################################
@@ -32,7 +32,7 @@ def config():
     return cr.read_parameters()
 
 
-def check_example(current_data_model, in_regression_network, optimal_model, in_flow_model):
+def check_example(current_data_model, in_regression_network, optimal_model, in_flow_model, batch_size=4096):
     crb_list = []
     mse_regression_list = []
     parameter_list = []
@@ -47,10 +47,13 @@ def check_example(current_data_model, in_regression_network, optimal_model, in_f
         mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
         ml_mse_list.append(torch.pow(theta_ml - theta, 2.0).mean().item())
         crb_list.append(current_data_model.crb(theta).item())
-        fim = gcrb.compute_fim(optimal_model, theta.reshape([1]), batch_size=512)
+
+        fim = gcrb.compute_fim(optimal_model, theta.reshape([1]), batch_size=batch_size)
         grcb_opt = torch.linalg.inv(fim)
-        fim = gcrb.compute_fim(in_flow_model, theta.reshape([1]), batch_size=512)
+
+        fim = gcrb.compute_fim(in_flow_model, theta.reshape([1]), batch_size=batch_size)
         grcb_flow = torch.linalg.inv(fim)
+
         parameter_list.append(theta.item())
         gcrb_opt_list.append(grcb_opt.item())
         gcrb_flow_list.append(grcb_flow.item())
@@ -75,7 +78,8 @@ def generate_flow_model(in_param, in_mu, in_std):
     affine = [nf.AffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True) for i, _ in enumerate(flows)]
 
     flows = [nf.InputNorm(in_mu, in_std), *list(itertools.chain(*zip(norms, convs, affine, flows)))[1:]]
-    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(2), torch.eye(2)), flows).to(constants.DEVICE)
+    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(in_param.dim), torch.eye(in_param.dim)), flows).to(
+        constants.DEVICE)
 
 
 if __name__ == '__main__':
@@ -100,10 +104,15 @@ if __name__ == '__main__':
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=1e-5)
     flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader, validation_dataset_loader,
-                                              optimizer_flow, 45)
+                                              optimizer_flow, 20)
 
     model_path = run_parameters.base_log_folder
     torch.save(flow_model.state_dict(), os.path.join(model_path, "flow_best.pt"))
+    d = flow_model.sample(1000, torch.tensor(2.0).repeat([1000]).reshape([-1, 1]))[-1][:, 0].detach().numpy()
 
+    # z = flow_model.prior.sample((1000,))
+    # xs, _ = flow_model.flow.backward(z, torch.tensor(5.0).repeat([1000]).reshape([-1, 1]))
+    plt.hist(d)
+    plt.show()
     # neural_network.flow_train(flow, dataset_loader, optimizer_flow)
     check_example(dm, regression_network, model_opt, flow_model)

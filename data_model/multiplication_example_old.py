@@ -13,13 +13,13 @@ class MultiplicationFlow(nn.Module):
         self.dim = dim
 
     def forward(self, x, cond=None):
-        z = torch.sign(x) * torch.pow(torch.abs(x / cond), 3)
-        log_det = torch.log(torch.prod(3 * torch.pow(cond, - 3) * torch.pow(x, 2.0), dim=1))
+        z = torch.sign(x) * torch.pow(torch.abs(x / cond), 1 / 3)
+        log_det = torch.log(torch.prod((1 / 3) * torch.pow(cond, -1 / 3) * torch.pow(torch.pow(x, 2.0), -1 / 3), dim=1))
         return z, log_det
 
     def backward(self, z, cond=None):
-        x = torch.sign(z) * torch.pow(torch.abs(z), 1 / 3) * cond
-        log_det = torch.log(torch.prod((1 / 3) * torch.pow(torch.abs(z), -2 / 3) * cond, dim=1))
+        x = torch.pow(z, 3.0) * cond
+        log_det = torch.log(torch.prod(3 * torch.pow(z, 2.0) * cond, dim=1))
         return x, log_det
 
 
@@ -48,14 +48,13 @@ class MultiplicationModel(object):
                                                                                    device=constants.DEVICE)
 
     def generate_data(self, n_samples, theta):
-        z = torch.randn([n_samples, self.dim], device=constants.DEVICE)
-        return torch.pow(torch.abs(z), 1 / 3) * theta * torch.sign(z)
+        return torch.pow(torch.randn([n_samples, self.dim], device=constants.DEVICE), 3.0) * theta
 
     def ml_estimator(self, r):
-        return torch.pow(torch.mean(torch.pow(torch.abs(r), 6), dim=1), 1/6)
+        return torch.pow(torch.mean(torch.pow(torch.abs(r), 2 / 3), dim=1), 3 / 2)
 
     def crb(self, theta):
-        return torch.pow(theta, 2.0) / (18 * self.dim)  # Check CRB in the case of dim>1
+        return torch.pow(theta, 2.0) * 9 / (2 * self.dim)  # Check CRB in the case of dim>1
 
     def build_dataset(self, dataset_size):
         print("Start Dataset Generation")
