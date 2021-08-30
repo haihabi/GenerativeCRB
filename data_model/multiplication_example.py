@@ -4,7 +4,7 @@ import constants
 import numpy as np
 from tqdm import tqdm
 from torch import nn
-
+from data_model.base_mode import BaseModel
 
 class MultiplicationFlow(nn.Module):
 
@@ -23,11 +23,10 @@ class MultiplicationFlow(nn.Module):
         return x, log_det
 
 
-class MultiplicationModel(object):
+class MultiplicationModel(BaseModel):
     def __init__(self, dim: int, theta_min: float, theta_max: float):
+        super().__init__(theta_min, theta_max)
         self.dim = dim
-        self.theta_min = theta_min
-        self.theta_max = theta_max
 
     def get_optimal_model(self):
         return MultiplicationFlow(self.dim)
@@ -57,16 +56,3 @@ class MultiplicationModel(object):
     def crb(self, theta):
         return torch.pow(theta, 2.0) / (18 * self.dim)  # Check CRB in the case of dim>1
 
-    def build_dataset(self, dataset_size):
-        print("Start Dataset Generation")
-        data = []
-        label = []
-        for _ in tqdm(range(dataset_size)):
-            theta = self.theta_min + (self.theta_max - self.theta_min) * torch.rand([1, 1], device=constants.DEVICE)
-            signal = self.generate_data(1, theta)
-
-            data.append(signal.detach().cpu().numpy().flatten())
-
-            label.append(theta.detach().cpu().numpy().flatten())
-
-        return common.NumpyDataset(data, label)

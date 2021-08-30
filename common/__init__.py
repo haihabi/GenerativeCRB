@@ -3,3 +3,4 @@ from common.training_results_manger import TrainingResultsManger
 from common.working_device import get_working_device
 from common.metric_averaging import MetricAveraging, SingleMetricAveraging
 from common.config_reader import ConfigReader
+from common.log_folder import generate_log_folder

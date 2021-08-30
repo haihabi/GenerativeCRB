@@ -229,6 +229,7 @@ class NSF_CL(nn.Module):
         D = F.softplus(D)
         upper, ld = unconstrained_RQS(upper, W, H, D, inverse=False, tail_bound=self.B)
         log_det += torch.sum(ld, dim=1)
+
         out = self.f2(upper).reshape(-1, self.dim // 2, 3 * self.K - 1)
         W, H, D = torch.split(out, self.K, dim=2)
         W, H = torch.softmax(W, dim=2), torch.softmax(H, dim=2)
@@ -236,6 +237,7 @@ class NSF_CL(nn.Module):
         D = F.softplus(D)
         lower, ld = unconstrained_RQS(lower, W, H, D, inverse=False, tail_bound=self.B)
         log_det += torch.sum(ld, dim=1)
+
         return torch.cat([lower, upper], dim=1), log_det
 
     def backward(self, z, cond=None):
