@@ -24,7 +24,9 @@ class LinearFlow(nn.Module):
         self.dim = dim
 
     def forward(self, x, cond=None):
-        z = torch.matmul(self.l_matrix_inv, x.transpose(dim0=0, dim1=1) - torch.matmul(self.a, cond.transpose(dim0=0, dim1=1))).transpose(dim0=0, dim1=1)
+        z = torch.matmul(self.l_matrix_inv,
+                         x.transpose(dim0=0, dim1=1) - torch.matmul(self.a, cond.transpose(dim0=0, dim1=1))).transpose(
+            dim0=0, dim1=1)
         return z, self.l_inv_log_det
 
     def backward(self, z, cond=None):
@@ -67,4 +69,9 @@ class LinearModel(BaseModel):
         return torch.pow(torch.mean(torch.pow(torch.abs(r), 6), dim=1), 1 / 6)
 
     def crb(self, theta):
-        return torch.pow(theta, 2.0) / (18 * self.dim)  # Check CRB in the case of dim>1
+        a = self.optimal_flow.a
+        l = self.optimal_flow.l_matrix
+        fim = torch.matmul(
+            torch.matmul(a.transpose(dim0=0, dim1=1), torch.linalg.inv(torch.matmul(l, l.transpose(dim0=0, dim1=1)))),
+            a)
+        return torch.linalg.inv(fim)

@@ -1,3 +1,8 @@
+from torch import nn
+import torch
+import numpy as np
+
+
 class BatchNorm(nn.Module):
     def __init__(self, num_features, momentum=0.1, eps=1.0e-5, affine=True):
         super(BatchNorm, self).__init__()
@@ -6,8 +11,8 @@ class BatchNorm(nn.Module):
         self.eps = eps
         self.momentum = momentum
 
-        self.dimensions = [1] + [1 for _ in num_features]
-        self.dimensions[1] = num_features[0]
+        self.dimensions = [num_features]
+        # self.dimensions[1] = num_features[0]
         log_gamma = torch.zeros(self.dimensions)
         beta = torch.zeros(self.dimensions)
         if affine:
@@ -22,11 +27,11 @@ class BatchNorm(nn.Module):
         self.register_buffer('batch_mean', torch.zeros(self.dimensions))
         self.register_buffer('batch_var', torch.ones(self.dimensions))
 
-    def forward(self, x, log_det_jacob):
+    def forward(self, x, cond=None):
         if self.training:
-            x_reshape = x.view(x.size(0), self.num_features[0], -1)
-            x_mean = torch.mean(x_reshape, dim=[0, 2], keepdim=True)
-            x_var = torch.mean((x_reshape - x_mean).pow(2), dim=[0, 2], keepdim=True) + self.eps
+            x_reshape = x.view(x.size(0), self.num_features)
+            x_mean = torch.mean(x_reshape, dim=[0], keepdim=True)
+            x_var = torch.mean((x_reshape - x_mean).pow(2), dim=[0], keepdim=True) + self.eps
             self.batch_mean.data.copy_(x_mean.view(self.dimensions))
             self.batch_var.data.copy_(x_var.view(self.dimensions))
 
@@ -48,7 +53,7 @@ class BatchNorm(nn.Module):
 
         return x, log_det_jacob
 
-    def backward(self, x, log_det_jacob):
+    def backward(self, x, cond=None):
         if self.training:
             mean, var = self.batch_mean, self.batch_var
         else:
@@ -59,6 +64,6 @@ class BatchNorm(nn.Module):
 
         num_pixels = np.prod(x.size()) // (x.size(0) * x.size(1))
         log_det = -self.log_gamma + 0.5 * torch.log(var)
-        log_det_jacob += torch.sum(log_det) * num_pixels
+        log_det_jacob = torch.sum(log_det) * num_pixels
 
         return x, log_det_jacob
