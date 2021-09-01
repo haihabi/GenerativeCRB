@@ -14,16 +14,17 @@ import constants
 
 def config():
     cr = common.ConfigReader()
-    cr.add_parameter('dataset_size', default=200000, type=int)
+    cr.add_parameter('dataset_size', default=50000, type=int)
     cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=64, type=int)
-    cr.add_parameter('base_log_folder', default="/Users/haihabi/projects/GenerativeCRB/logs", type=str)
+    main_path = os.getcwd()
+    cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
 
     #############################################
     # Model Config
     #############################################
     cr.add_parameter('model_type', default="Linear", type=str, enum=data_model.ModelType)
-    cr.add_parameter('dim', default=8, type=int)
+    cr.add_parameter('dim', default=2, type=int)
     cr.add_parameter('theta_min', default=-10.0, type=float)
     cr.add_parameter('theta_max', default=10.0, type=float)
     cr.add_parameter('sigma_n', default=1.0, type=float)
@@ -37,7 +38,7 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=25, type=int)
+    cr.add_parameter('n_epochs_flow', default=5, type=int)
     return cr
 
 
@@ -127,18 +128,25 @@ if __name__ == '__main__':
     optimizer = neural_network.SingleNetworkOptimization(regression_network, run_parameters.n_epochs)
     neural_network.regression_training(training_dataset_loader, regression_network, optimizer, torch.nn.MSELoss())
     flow_model = generate_flow_model(run_parameters, mu, std)
-    optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow, lr=1e-4,
+    optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow, lr=1e-3,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
-                                                              weight_decay=1e-5)
+                                                              weight_decay=1e-6)
     flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader, validation_dataset_loader,
                                               optimizer_flow, run_parameters.n_epochs_flow)
 
     torch.save(flow_model.state_dict(), os.path.join(run_log_dir, "flow_best.pt"))
+    data_list = []
+    for dr, _ in training_dataset_loader:
+        data_list.append(dr)
+        if len(data_list) > 15:
+            break
+    data2plot = torch.cat(data_list, dim=0)
     d = flow_model.sample(1000, torch.tensor(2.0).repeat([1000]).reshape([-1, 1]))[-1][:, 0].detach().numpy()
 
-    # z = flow_model.prior.sample((1000,))
-    # xs, _ = flow_model.flow.backward(z, torch.tensor(5.0).repeat([1000]).reshape([-1, 1]))
-    plt.hist(d)
+    plt.hist(data2plot.numpy()[:, 0], density=True, label="Real Samples")
+    plt.hist(d, density=True, label="NF Samples")
+    plt.legend()
+    plt.grid()
     plt.show()
     # neural_network.flow_train(flow, dataset_loader, optimizer_flow)
     check_example(dm, regression_network, model_opt, flow_model)
