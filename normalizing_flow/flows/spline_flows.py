@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
-
+import constants
 from normalizing_flow.base_nets import MLP
 
 DEFAULT_MIN_BIN_WIDTH = 1e-3
@@ -220,7 +220,7 @@ class NSF_CL(nn.Module):
         self.f2 = base_network(dim // 2, (3 * K - 1) * dim // 2, hidden_dim)
 
     def forward(self, x, cond=None):
-        log_det = torch.zeros(x.shape[0])
+        log_det = torch.zeros(x.shape[0], device=constants.DEVICE)
         lower, upper = x[:, :self.dim // 2], x[:, self.dim // 2:]
         out = self.f1(lower).reshape(-1, self.dim // 2, 3 * self.K - 1)
         W, H, D = torch.split(out, self.K, dim=2)
@@ -241,7 +241,7 @@ class NSF_CL(nn.Module):
         return torch.cat([lower, upper], dim=1), log_det
 
     def backward(self, z, cond=None):
-        log_det = torch.zeros(z.shape[0])
+        log_det = torch.zeros(z.shape[0], device=constants.DEVICE)
         lower, upper = z[:, :self.dim // 2], z[:, self.dim // 2:]
         out = self.f2(upper).reshape(-1, self.dim // 2, 3 * self.K - 1)
         W, H, D = torch.split(out, self.K, dim=2)

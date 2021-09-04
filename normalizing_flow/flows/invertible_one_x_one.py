@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import constants
 
 
 class Invertible1x1Conv(nn.Module):
@@ -12,14 +13,14 @@ class Invertible1x1Conv(nn.Module):
         self.dim = dim
         Q = torch.nn.init.orthogonal_(torch.randn(dim, dim))
         P, L, U = torch.lu_unpack(*Q.lu())
-        self.P = P  # remains fixed during optimization
+        self.P = P.to(constants.DEVICE)  # remains fixed during optimization
         self.L = nn.Parameter(L)  # lower triangular portion
         self.S = nn.Parameter(U.diag())  # "crop out" the diagonal to its own parameter
         self.U = nn.Parameter(torch.triu(U, diagonal=1))  # "crop out" diagonal, stored in S
 
     def _assemble_W(self):
         """ assemble W from its pieces (P, L, U, S) """
-        L = torch.tril(self.L, diagonal=-1) + torch.diag(torch.ones(self.dim))
+        L = torch.tril(self.L, diagonal=-1) + torch.diag(torch.ones(self.dim, device=constants.DEVICE))
         U = torch.triu(self.U, diagonal=1)
         W = self.P @ L @ (U + torch.diag(self.S))
         return W

@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import constants
 
 
 class NormalizingFlow(nn.Module):
@@ -11,7 +12,7 @@ class NormalizingFlow(nn.Module):
 
     def forward(self, x, cond=None):
         m, _ = x.shape
-        log_det = torch.zeros(m)
+        log_det = torch.zeros(m, device=constants.DEVICE)
         zs = [x]
         for flow in self.flows:
             # print(type(flow))
@@ -22,7 +23,7 @@ class NormalizingFlow(nn.Module):
 
     def backward(self, z, cond=None):
         m, _ = z.shape
-        log_det = torch.zeros(m)
+        log_det = torch.zeros(m, device=constants.DEVICE)
         xs = [z]
         for flow in self.flows[::-1]:
             z, ld = flow.backward(z, cond)
@@ -70,4 +71,3 @@ class NormalizingFlowModel(nn.Module):
         y = self.sample(num_samples, cond=cond)[-1]
         y = y.detach()
         return self.nll(y, cond)
-

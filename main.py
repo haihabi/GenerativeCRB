@@ -18,7 +18,7 @@ def config():
     cr = common.ConfigReader()
     cr.add_parameter('dataset_size', default=50000, type=int)
     cr.add_parameter('val_dataset_size', default=10000, type=int)
-    cr.add_parameter('batch_size', default=64, type=int)
+    cr.add_parameter('batch_size', default=512, type=int)
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)
@@ -83,7 +83,8 @@ def check_example(current_data_model, in_regression_network, optimal_model, in_f
         gcrb_opt_list.append(grcb_opt.item())
         # gcrb_opt_back_list.append(grcb_opt_back.item())
         gcrb_flow_list.append(grcb_flow.item())
-
+    plt.clf()
+    plt.cla()
     plt.plot(parameter_list, crb_list, label='CRB')
     plt.plot(parameter_list, gcrb_opt_list, label='GCRB Optimal NF')
     # plt.plot(parameter_list, gcrb_opt_back_list, label='GCRB Optimal NF - Back')
@@ -94,7 +95,8 @@ def check_example(current_data_model, in_regression_network, optimal_model, in_f
     plt.legend()
     plt.xlabel(r"$\theta$")
     plt.ylabel(r"$MSE(\theta)$")
-    plt.show()
+    wandb.log({"CRB Compare": wandb.Image(plt)})
+    # plt.show()
 
 
 def generate_flow_model(in_param, in_mu, in_std, condition_embedding_size=1):
@@ -112,7 +114,8 @@ def generate_flow_model(in_param, in_mu, in_std, condition_embedding_size=1):
 
     flows = [nf.InputNorm(in_mu, in_std), *list(itertools.chain(*zip(affine, affine_inj, convs, norms, flows)))]
     # condition_network = nf.MLP(1, condition_embbeding_size, 24)
-    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(in_param.dim), torch.eye(in_param.dim)), flows,
+    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(in_param.dim, device=constants.DEVICE),
+                                                      torch.eye(in_param.dim, device=constants.DEVICE)), flows,
                                    condition_network=None).to(
         constants.DEVICE)
 
@@ -142,7 +145,7 @@ if __name__ == '__main__':
     run_parameters = cr.get_user_arguments()
     wandb.init(project=constants.PROJECT)
     wandb.config.update(run_parameters)  # adds all of the arguments as config variables
-
+    os.makedirs(run_parameters.base_log_folder, exist_ok=True)
     run_log_dir = common.generate_log_folder(run_parameters.base_log_folder)
     cr.save_config(run_log_dir)
 
@@ -150,6 +153,8 @@ if __name__ == '__main__':
     if run_parameters.load_model_data is not None:
         dm.load_data_model(run_parameters.load_model_data)
     dm.save_data_model(run_log_dir)
+    os.makedirs(run_parameters.base_dataset_folder, exist_ok=True)
+
     training_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "training_dataset.pickle")
     validation_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "validation_dataset.pickle")
     if os.path.isfile(training_dataset_file_path) and os.path.isfile(validation_dataset_file_path):
@@ -177,13 +182,15 @@ if __name__ == '__main__':
     validation_dataset_loader = torch.utils.data.DataLoader(validation_data, batch_size=run_parameters.batch_size,
                                                             shuffle=False, num_workers=0)
 
-    prior = MultivariateNormal(torch.zeros(run_parameters.dim), torch.eye(run_parameters.dim))
+    prior = MultivariateNormal(torch.zeros(run_parameters.dim, device=constants.DEVICE),
+                               torch.eye(run_parameters.dim, device=constants.DEVICE))
     model_opt = nf.NormalizingFlowModel(prior, [dm.get_optimal_model()])
     # regression_network = neural_network.get_network(run_parameters, dm)
     # optimizer = neural_network.SingleNetworkOptimization(regression_network, run_parameters.n_epochs)
     # neural_network.regression_training(training_dataset_loader, regression_network, optimizer, torch.nn.MSELoss())
     flow_model = generate_flow_model(run_parameters, mu, std)
-    optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow, lr=run_parameters.nf_lr,
+    optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
+                                                              lr=run_parameters.nf_lr,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=run_parameters.nf_weight_decay)
     best_flow_model, flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader,
@@ -197,12 +204,15 @@ if __name__ == '__main__':
         if len(data_list) > 15:
             break
     data2plot = torch.cat(data_list, dim=0)
-    d = best_flow_model.sample(1000, torch.tensor(2.0).repeat([1000]).reshape([-1, 1]))[-1][:, 0].detach().numpy()
+    d = best_flow_model.sample(1000, torch.tensor(2.0, device=constants.DEVICE).repeat([1000]).reshape([-1, 1]))[-1][:,
+        0].detach().cpu().numpy()
 
     plt.hist(data2plot.numpy()[:, 0], density=True, label="Real Samples")
     plt.hist(d, density=True, label="NF Samples")
     plt.legend()
     plt.grid()
-    plt.show()
+    wandb.log({"NF Histogram": wandb.Image(plt)})
+
+    # plt.show()
     # neural_network.flow_train(flow, dataset_loader, optimizer_flow)
     check_example(dm, None, model_opt, best_flow_model, min_vector, max_vector)
