@@ -27,8 +27,8 @@ class ActNorm(AffineConstantFlow):
 class InputNorm(nn.Module):
     def __init__(self, mu, std):
         super().__init__()
-        self.t = nn.Parameter(torch.from_numpy(mu).reshape([1, -1]), requires_grad=False)
-        self.s = nn.Parameter(torch.from_numpy(std).reshape([1, -1]), requires_grad=False)
+        self.t = nn.Parameter(mu, requires_grad=False)
+        self.s = nn.Parameter(std, requires_grad=False)
 
     def forward(self, x, cond=None):
         z = (x - self.t) / self.s

@@ -127,5 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+# Temp folder and .idea
 logs/
+datasets/
 .idea/

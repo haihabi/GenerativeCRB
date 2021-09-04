@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 
 from common.metric_averaging import MetricAveraging
+import wandb
 
 TRAINING = "training_"
 VALIDATION = "validation_"
@@ -13,6 +14,11 @@ class TrainingResultsManger(object):
         self.results_dict = dict()
         self.best_value_training = None
         self.best_value_val = None
+
+    def print_best_values(self):
+        print("-" * 100)
+        print(f"Best Loss Validation:{self.best_value_val} and Training {self.best_value_training}")
+        print("-" * 100)
 
     def training_batch(self, results_dict):
         self.training_ma.update_metrics(results_dict)
@@ -46,19 +52,23 @@ class TrainingResultsManger(object):
         print("-" * 100)
         is_best_val = False
         is_best_training = False
+        results_dict2log = {}
         for k, v in training_results_dict.items():
             self._append2results_dict(TRAINING + k, v)
+            results_dict2log.update({TRAINING + k: v})
             if k in results2point:
                 print(f"Training-{k}:{v}")
             if k == best_metric:
                 is_best_training = self.update_best_training(v)
         for k, v in validation_results_dict.items():
             self._append2results_dict(VALIDATION + k, v)
+            results_dict2log.update({VALIDATION + k: v})
             if k in results2point:
                 print(f"Validation-{k}:{v}")
             if k == best_metric:
                 is_best_val = self.update_best_val(v)
         is_best = is_best_val and is_best_training
+        wandb.log(results_dict2log)
         return is_best
 
     def _append2results_dict(self, k, v):

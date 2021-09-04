@@ -16,6 +16,6 @@ class NumpyDataset(Dataset):
     def __len__(self):
         return self.n
 
-    def get_second_order_stat(self):
+    def get_min_max_vector(self):
         x = np.stack(self.data)
         return np.min(x, axis=0).astype("float32"), (np.max(x, axis=0) - np.min(x, axis=0)).astype("float32")

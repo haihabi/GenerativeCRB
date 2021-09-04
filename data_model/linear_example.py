@@ -11,8 +11,11 @@ class LinearFlow(nn.Module):
 
     def __init__(self, dim, parameter_vector_size, sigma_n):
         super().__init__()
-        self.a = nn.Parameter(torch.randn([dim, parameter_vector_size]), requires_grad=False)
+        a = torch.randn([dim, parameter_vector_size])
+        a_norm = a / torch.sqrt(torch.pow(torch.abs(a), 2.0).sum())
+        self.a = nn.Parameter(a_norm, requires_grad=False)
         b = torch.randn([dim, dim])
+        b = b / torch.norm(b)
         bbt = torch.matmul(b.transpose(dim0=0, dim1=1), b)
         self.sigma_n = sigma_n
         c_xx = torch.eye(dim) * (self.sigma_n ** 2) + bbt

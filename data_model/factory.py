@@ -16,6 +16,6 @@ def get_model(model_type, model_parameter_dict) -> BaseModel:
                                    model_parameter_dict[constants.THETA_MAX])
     elif model_type == ModelType.Linear:
         return LinearModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
-                           model_parameter_dict[constants.THETA_MAX], model_parameter_dict[constants.THETA_MAX])
+                           model_parameter_dict[constants.THETA_MAX], model_parameter_dict[constants.SIGMA_N])
     else:
         raise NotImplemented
