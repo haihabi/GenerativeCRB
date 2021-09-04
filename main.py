@@ -12,6 +12,8 @@ import os
 import constants
 import pickle
 import wandb
+import numpy as np
+import random
 
 
 def config():
@@ -41,7 +43,7 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=240, type=int)
+    cr.add_parameter('n_epochs_flow', default=960, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
     cr.add_parameter('nf_lr', default=1e-4, type=float)
     return cr
@@ -141,6 +143,10 @@ def load_dataset2file(file_path):
 if __name__ == '__main__':
     # TODO: refactor the main code
     cr = config()
+
+    torch.manual_seed(0)
+    random.seed(0)
+    np.random.seed(0)
 
     run_parameters = cr.get_user_arguments()
     wandb.init(project=constants.PROJECT)
