@@ -18,8 +18,8 @@ import random
 
 def config():
     cr = common.ConfigReader()
-    cr.add_parameter('dataset_size', default=50000, type=int)
-    cr.add_parameter('val_dataset_size', default=10000, type=int)
+    cr.add_parameter('dataset_size', default=100000, type=int)
+    cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=512, type=int)
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
@@ -34,7 +34,7 @@ def config():
     cr.add_parameter('theta_max', default=10.0, type=float)
     cr.add_parameter('sigma_n', default=0.1, type=float)
     cr.add_parameter('load_model_data', type=str)
-    #############################################
+    ############################################
     # Regression Network
     #############################################
     cr.add_parameter('n_epochs', default=2, type=int)
@@ -44,7 +44,7 @@ def config():
     # Regression Network - Flow
     #############################################
     cr.add_parameter('n_epochs_flow', default=960, type=int)
-    cr.add_parameter('nf_weight_decay', default=0, type=float)
+    cr.add_parameter('nf_weight_decay', default=1e-6, type=float)
     cr.add_parameter('nf_lr', default=1e-4, type=float)
     return cr
 
@@ -114,7 +114,7 @@ def generate_flow_model(in_param, in_mu, in_std, condition_embedding_size=1):
     affine_inj = [nf.AffineInjector(dim=in_param.dim, scale=True, condition_vector_size=condition_embedding_size) for
                   i, _ in enumerate(flows)]
 
-    flows = [nf.InputNorm(in_mu, in_std), *list(itertools.chain(*zip(affine, affine_inj, convs, norms, flows)))]
+    flows = [*list(itertools.chain(*zip(affine, affine_inj, convs, norms, flows)))]
     # condition_network = nf.MLP(1, condition_embbeding_size, 24)
     return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(in_param.dim, device=constants.DEVICE),
                                                       torch.eye(in_param.dim, device=constants.DEVICE)), flows,
