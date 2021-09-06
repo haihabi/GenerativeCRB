@@ -28,7 +28,7 @@ def config():
     #############################################
     # Model Config
     #############################################
-    cr.add_parameter('model_type', default="Multiplication", type=str, enum=data_model.ModelType)
+    cr.add_parameter('model_type', default="Multiplication_1_3", type=str, enum=data_model.ModelType)
     cr.add_parameter('dim', default=2, type=int)
     cr.add_parameter('theta_min', default=0.3, type=float)
     cr.add_parameter('theta_max', default=10.0, type=float)
@@ -144,44 +144,42 @@ if __name__ == '__main__':
     # TODO: refactor the main code
     cr = config()
 
-    torch.manual_seed(0)
+    torch.manual_seed(0)  # TODO:make a function
     random.seed(0)
     np.random.seed(0)
 
     run_parameters = cr.get_user_arguments()
-    wandb.init(project=constants.PROJECT)
+
+    os.makedirs(run_parameters.base_log_folder, exist_ok=True)  # TODO:make a function
+    wandb.init(project=constants.PROJECT, dir=run_parameters.base_log_folder)  # Set WandB Folder to log folder
     wandb.config.update(run_parameters)  # adds all of the arguments as config variables
-    os.makedirs(run_parameters.base_log_folder, exist_ok=True)
     run_log_dir = common.generate_log_folder(run_parameters.base_log_folder)
     cr.save_config(run_log_dir)
 
     dm = data_model.get_model(run_parameters.model_type, generate_model_parameter_dict(run_parameters))
-    if run_parameters.load_model_data is not None:
-        dm.load_data_model(run_parameters.load_model_data)
-    dm.save_data_model(run_log_dir)
-    os.makedirs(run_parameters.base_dataset_folder, exist_ok=True)
 
+    os.makedirs(run_parameters.base_dataset_folder, exist_ok=True)  # TODO:make a function & change name to model names
     training_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "training_dataset.pickle")
     validation_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "validation_dataset.pickle")
+    model_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "model")
     if os.path.isfile(training_dataset_file_path) and os.path.isfile(validation_dataset_file_path):
         training_data = load_dataset2file(training_dataset_file_path)
         validation_data = load_dataset2file(validation_dataset_file_path)
+        dm.load_data_model(model_dataset_file_path)
         print("Loading Dataset Files")
     else:
         training_data = dm.build_dataset(run_parameters.dataset_size)
         validation_data = dm.build_dataset(run_parameters.val_dataset_size)
         save_dataset2file(training_data, training_dataset_file_path)
         save_dataset2file(validation_data, validation_dataset_file_path)
+        dm.save_data_model(model_dataset_file_path)
         print("Saving Dataset Files")
 
-    min_vector, max_vector = training_data.get_min_max_vector()
+    min_vector, max_vector = training_data.get_min_max_vector()  # TODO:make a function
     min_vector = torch.tensor(min_vector, device=constants.DEVICE).reshape([1, -1])
     max_vector = torch.tensor(max_vector, device=constants.DEVICE).reshape([1, -1])
     mu = min_vector
     std = max_vector - min_vector
-    # print("")
-    # print(min_vector)
-    # print(max_vector)
 
     training_dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
                                                           shuffle=True, num_workers=0)
@@ -191,9 +189,11 @@ if __name__ == '__main__':
     prior = MultivariateNormal(torch.zeros(run_parameters.dim, device=constants.DEVICE),
                                torch.eye(run_parameters.dim, device=constants.DEVICE))
     model_opt = nf.NormalizingFlowModel(prior, [dm.get_optimal_model()])
+
     # regression_network = neural_network.get_network(run_parameters, dm)
     # optimizer = neural_network.SingleNetworkOptimization(regression_network, run_parameters.n_epochs)
     # neural_network.regression_training(training_dataset_loader, regression_network, optimizer, torch.nn.MSELoss())
+
     flow_model = generate_flow_model(run_parameters, mu, std)
     optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
                                                               lr=run_parameters.nf_lr,

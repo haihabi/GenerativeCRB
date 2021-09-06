@@ -1,3 +1,4 @@
 from data_model.factory import get_model, ModelType
-from data_model.multiplication_example import MultiplicationModel
+from data_model.pow_3_gaussian_variance import MultiplicationModel
+from data_model.gaussian_variance import MultiplicationSimple
 from data_model.linear_example import LinearModel
