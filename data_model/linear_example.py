@@ -1,14 +1,10 @@
 import torch
-import common
 import constants
-import numpy as np
-from tqdm import tqdm
 from torch import nn
 from data_model.base_mode import BaseModel
 
 
-class LinearFlow(nn.Module):
-
+class LinearOptimalFlow(nn.Module):
     def __init__(self, dim, parameter_vector_size, sigma_n):
         super().__init__()
         a = torch.randn([dim, parameter_vector_size])
@@ -41,12 +37,15 @@ class LinearFlow(nn.Module):
 
 class LinearModel(BaseModel):
     def __init__(self, dim: int, theta_min: float, theta_max: float, sigma_n):
-        super().__init__(theta_min, theta_max)
-        self.dim = dim
+        super().__init__(dim, theta_min, theta_max)
         self.sigma_n = sigma_n
-        self.optimal_flow = LinearFlow(self.dim, self.parameter_vector_length, self.sigma_n)
+        self.optimal_flow = LinearOptimalFlow(self.dim, self.parameter_vector_length, self.sigma_n)
 
-    def get_optimal_model(self):
+    @property
+    def name(self) -> str:
+        return f"{super().name}_{self.sigma_n}"  # Append Sigma N to Name
+
+    def _get_optimal_model(self):
         return self.optimal_flow
 
     def save_data_model(self, folder):
@@ -55,20 +54,13 @@ class LinearModel(BaseModel):
     def load_data_model(self, folder):
         pass
 
-    @property
-    def parameter_vector_length(self):
-        return 1
-
-    def parameter_range(self, n_steps):
-        return self.theta_min + (self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,
-                                                                                   device=constants.DEVICE)
-
     def generate_data(self, n_samples, theta):
         cond = torch.ones([n_samples, 1], device=constants.DEVICE) * theta
         z = torch.randn([n_samples, self.dim], device=constants.DEVICE)
         return self.optimal_flow.backward(z, cond=cond)[0]
 
-    def ml_estimator(self, r):
+    @staticmethod
+    def ml_estimator(r):
         return torch.pow(torch.mean(torch.pow(torch.abs(r), 6), dim=1), 1 / 6)
 
     def crb(self, theta):

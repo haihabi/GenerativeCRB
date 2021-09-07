@@ -1,21 +1,29 @@
 import constants
 from data_model.base_mode import BaseModel
-from data_model.pow_3_gaussian_variance import MultiplicationModel
+from data_model.pow_1_3_gaussian_variance import Pow1Div3Gaussian
+from data_model.pow_3_gaussian_variance import Pow3Gaussian
 from data_model.linear_example import LinearModel
+from data_model.gaussian_variance import GaussianVarianceDataModel
 from enum import Enum
 
 
 class ModelType(Enum):
-    Multiplication_1_3 = 0
+    Pow1Div3Gaussian = 0
     Linear = 1
     GaussianVariance = 2
-    Multiplication_3 = 0
+    Pow3Gaussian = 3
 
 
 def get_model(model_type, model_parameter_dict) -> BaseModel:
-    if model_type == ModelType.Multiplication_1_3:
-        return MultiplicationModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
-                                   model_parameter_dict[constants.THETA_MAX])
+    if model_type == ModelType.Pow1Div3Gaussian:
+        return Pow1Div3Gaussian(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
+                                model_parameter_dict[constants.THETA_MAX])
+    elif model_type == ModelType.Pow3Gaussian:
+        return Pow3Gaussian(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
+                            model_parameter_dict[constants.THETA_MAX])
+    elif model_type == ModelType.GaussianVariance:
+        return GaussianVarianceDataModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
+                                         model_parameter_dict[constants.THETA_MAX])
     elif model_type == ModelType.Linear:
         return LinearModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
                            model_parameter_dict[constants.THETA_MAX], model_parameter_dict[constants.SIGMA_N])

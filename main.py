@@ -12,8 +12,6 @@ import os
 import constants
 import pickle
 import wandb
-import numpy as np
-import random
 
 
 def config():
@@ -28,7 +26,7 @@ def config():
     #############################################
     # Model Config
     #############################################
-    cr.add_parameter('model_type', default="Multiplication_1_3", type=str, enum=data_model.ModelType)
+    cr.add_parameter('model_type', default="Pow1Div3Gaussian", type=str, enum=data_model.ModelType)
     cr.add_parameter('dim', default=2, type=int)
     cr.add_parameter('theta_min', default=0.3, type=float)
     cr.add_parameter('theta_max', default=10.0, type=float)
@@ -43,7 +41,7 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=960, type=int)
+    cr.add_parameter('n_epochs_flow', default=2, type=int)
     cr.add_parameter('nf_weight_decay', default=1e-6, type=float)
     cr.add_parameter('nf_lr', default=1e-4, type=float)
     return cr
@@ -56,7 +54,7 @@ def check_example(current_data_model, in_regression_network, optimal_model, in_f
     parameter_list = []
     ml_mse_list = []
     gcrb_opt_list = []
-    gcrb_opt_back_list = []
+    gcrb_back_list = []
     gcrb_flow_list = []
     if in_regression_network is not None:
         in_regression_network.eval()
@@ -74,23 +72,23 @@ def check_example(current_data_model, in_regression_network, optimal_model, in_f
         fim = gcrb.compute_fim(optimal_model, theta.reshape([1]), batch_size=batch_size)
         grcb_opt = torch.linalg.inv(fim)
 
-        # fim_back = gcrb.compute_fim_backward(optimal_model, theta.reshape([1]),
-        #                                      batch_size=batch_size)
-        # grcb_opt_back = torch.linalg.inv(fim_back)
+        fim_back = gcrb.compute_fim_backward(in_flow_model, theta.reshape([1]),
+                                             batch_size=batch_size)
+        grcb_back = torch.linalg.inv(fim_back)
 
         fim = gcrb.compute_fim(in_flow_model, theta.reshape([1]), batch_size=batch_size)
         grcb_flow = torch.linalg.inv(fim)
 
         parameter_list.append(theta.item())
         gcrb_opt_list.append(grcb_opt.item())
-        # gcrb_opt_back_list.append(grcb_opt_back.item())
+        gcrb_back_list.append(grcb_back.item())
         gcrb_flow_list.append(grcb_flow.item())
     plt.clf()
     plt.cla()
     plt.plot(parameter_list, crb_list, label='CRB')
     plt.plot(parameter_list, gcrb_opt_list, label='GCRB Optimal NF')
-    # plt.plot(parameter_list, gcrb_opt_back_list, label='GCRB Optimal NF - Back')
-    plt.plot(parameter_list, gcrb_flow_list, label='GCRB NF')
+    plt.plot(parameter_list, gcrb_flow_list, label='GCRB NF - DUAL')
+    plt.plot(parameter_list, gcrb_back_list, label='GCRB NF - Backward')
     # plt.plot(parameter_list, mse_regression_list, label='Regression Network')
     # plt.plot(parameter_list, ml_mse_list, "--x", label='ML Estimator Error')
     plt.grid()
@@ -143,10 +141,7 @@ def load_dataset2file(file_path):
 if __name__ == '__main__':
     # TODO: refactor the main code
     cr = config()
-
-    torch.manual_seed(0)  # TODO:make a function
-    random.seed(0)
-    np.random.seed(0)
+    common.set_seed(0)
 
     run_parameters = cr.get_user_arguments()
 
@@ -159,8 +154,9 @@ if __name__ == '__main__':
     dm = data_model.get_model(run_parameters.model_type, generate_model_parameter_dict(run_parameters))
 
     os.makedirs(run_parameters.base_dataset_folder, exist_ok=True)  # TODO:make a function & change name to model names
-    training_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "training_dataset.pickle")
-    validation_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "validation_dataset.pickle")
+    training_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, f"training_{dm.name}_dataset.pickle")
+    validation_dataset_file_path = os.path.join(run_parameters.base_dataset_folder,
+                                                f"validation_{dm.name}_dataset.pickle")
     model_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "model")
     if os.path.isfile(training_dataset_file_path) and os.path.isfile(validation_dataset_file_path):
         training_data = load_dataset2file(training_dataset_file_path)
@@ -186,13 +182,10 @@ if __name__ == '__main__':
     validation_dataset_loader = torch.utils.data.DataLoader(validation_data, batch_size=run_parameters.batch_size,
                                                             shuffle=False, num_workers=0)
 
-    prior = MultivariateNormal(torch.zeros(run_parameters.dim, device=constants.DEVICE),
-                               torch.eye(run_parameters.dim, device=constants.DEVICE))
-    model_opt = nf.NormalizingFlowModel(prior, [dm.get_optimal_model()])
-
-    # regression_network = neural_network.get_network(run_parameters, dm)
-    # optimizer = neural_network.SingleNetworkOptimization(regression_network, run_parameters.n_epochs)
-    # neural_network.regression_training(training_dataset_loader, regression_network, optimizer, torch.nn.MSELoss())
+    # prior = MultivariateNormal(torch.zeros(run_parameters.dim, device=constants.DEVICE),
+    #                            torch.eye(run_parameters.dim, device=constants.DEVICE))
+    # model_opt = nf.NormalizingFlowModel(prior, [dm._get_optimal_model()])
+    model_opt = dm.get_optimal_model()
 
     flow_model = generate_flow_model(run_parameters, mu, std)
     optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,

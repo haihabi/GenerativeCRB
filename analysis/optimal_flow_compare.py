@@ -10,9 +10,9 @@ from main import generate_flow_model, config
 if __name__ == '__main__':
     param = config()
     # dim = 2
-    dm = data_model.MultiplicationModel(param.dim, 0.2, 10)
+    dm = data_model.Pow1Div3Gaussian(param.dim, 0.2, 10)
     prior = MultivariateNormal(torch.zeros(2), torch.eye(2))
-    model_opt = nf.NormalizingFlowModel(prior, [dm.get_optimal_model()])
+    model_opt = nf.NormalizingFlowModel(prior, [dm._get_optimal_model()])
     model = generate_flow_model(param, np.zeros(2).astype("float32"), np.zeros(2).astype("float32"))
     model.load_state_dict(torch.load(f"C:\work\GenerativeCRB\logs\\flow_best.pt"))
     model.eval()
