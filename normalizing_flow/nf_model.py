@@ -60,7 +60,7 @@ class NormalizingFlowModel(nn.Module):
         return -logprob  # Negative LL
 
     def nll_mean(self, x, cond=None):
-        return torch.mean(self.nll(x, cond))  # NLL
+        return torch.mean(self.nll(x, cond)) / x.shape[1]  # NLL per dim
 
     def sample(self, num_samples, cond=None):
         z = self.prior.sample((num_samples,))

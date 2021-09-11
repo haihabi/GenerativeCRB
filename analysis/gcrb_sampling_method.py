@@ -26,38 +26,47 @@ def get_gcrb_bounds(in_optimal_flow, in_theta, in_batch_size):
 
 
 if __name__ == '__main__':
-    n_iter = 10000
+    n_iter = 10
     batch_size_array = [128, 1024, 4098, 8192, 16384, 32000]
+    dim_array = [2, 4, 8, 16, 32]
     common.set_seed(0)
     model_type = data_model.ModelType.Linear
-    dim = 2
 
-    m2r = data_model.get_model(model_type, generate_model_dict(dim))
-    optimal_flow = m2r.get_optimal_model()
-    theta_array = m2r.parameter_range(20).numpy()
     results = []
     results_iteration = []
-    for batch_size in batch_size_array:
-        results_theta = []
-        _results_iteration = []
-        for j, theta_value in enumerate(theta_array):
-            theta = theta_value * torch.ones([1])
-            gcrb_v_back, gcrb_v_dual = get_gcrb_bounds(optimal_flow, theta, batch_size)
-            crb = m2r.crb(theta)
+    for dim in dim_array:
 
-            error_back = torch.abs(gcrb_v_back - crb).mean().item()
-            error_dual = torch.abs(gcrb_v_dual - crb).mean().item()
-            if j == 10:
-                for i in tqdm(range(n_iter)):
-                    _results_iteration.append([error_dual, error_back])
-                    gcrb_v_back, gcrb_v_dual = get_gcrb_bounds(optimal_flow, theta, batch_size)
-                    error_back = torch.abs(gcrb_v_back - crb).mean().item()
-                    error_dual = torch.abs(gcrb_v_dual - crb).mean().item()
+        m2r = data_model.get_model(model_type, generate_model_dict(dim))
+        optimal_flow = m2r.get_optimal_model()
+        theta_array = m2r.parameter_range(20).numpy()
 
-            results_theta.append([error_dual, error_back])
-        results.append(results_theta)
-        results_iteration.append(_results_iteration)
+        results_dim = []
+        results_dim_iteration = []
+        for batch_size in batch_size_array:
+            print(dim,batch_size)
+            results_theta = []
+            _results_iteration = []
+            for j, theta_value in enumerate(theta_array):
+                theta = theta_value * torch.ones([1])
+                gcrb_v_back, gcrb_v_dual = get_gcrb_bounds(optimal_flow, theta, batch_size)
+                crb = m2r.crb(theta)
+
+                error_back = torch.abs(gcrb_v_back - crb).mean().item()
+                error_dual = torch.abs(gcrb_v_dual - crb).mean().item()
+                if j == 10:
+                    for i in tqdm(range(n_iter)):
+                        _results_iteration.append([error_dual, error_back])
+                        gcrb_v_back, gcrb_v_dual = get_gcrb_bounds(optimal_flow, theta, batch_size)
+                        error_back = torch.abs(gcrb_v_back - crb).mean().item()
+                        error_dual = torch.abs(gcrb_v_dual - crb).mean().item()
+
+                results_theta.append([error_dual, error_back])
+            results_dim.append(results_theta)
+            results_dim_iteration.append(_results_iteration)
+        results.append(results_dim)
+        results_iteration.append(results_dim_iteration)
     # print("a")
+    print("Finised Run Loop")
     results = np.asarray(results)
     results_iteration = np.asarray(results_iteration)
     plt.subplot(1, 3, 1)
