@@ -182,9 +182,6 @@ if __name__ == '__main__':
     validation_dataset_loader = torch.utils.data.DataLoader(validation_data, batch_size=run_parameters.batch_size,
                                                             shuffle=False, num_workers=0)
 
-    # prior = MultivariateNormal(torch.zeros(run_parameters.dim, device=constants.DEVICE),
-    #                            torch.eye(run_parameters.dim, device=constants.DEVICE))
-    # model_opt = nf.NormalizingFlowModel(prior, [dm._get_optimal_model()])
     model_opt = dm.get_optimal_model()
 
     flow_model = generate_flow_model(run_parameters, mu, std)
@@ -197,16 +194,14 @@ if __name__ == '__main__':
                                                                optimizer_flow, run_parameters.n_epochs_flow)
     # flow_model2check
     torch.save(best_flow_model.state_dict(), os.path.join(run_log_dir, "flow_best.pt"))
-    data_list = []
-    for dr, _ in training_dataset_loader:
-        data_list.append(dr)
-        if len(data_list) > 15:
-            break
-    data2plot = torch.cat(data_list, dim=0)
+
     d = best_flow_model.sample(1000, torch.tensor(2.0, device=constants.DEVICE).repeat([1000]).reshape([-1, 1]))[-1][:,
         0].detach().cpu().numpy()
 
-    plt.hist(data2plot.numpy()[:, 0], density=True, label="Real Samples")
+    d_opt = model_opt.sample(1000, torch.tensor(2.0, device=constants.DEVICE).repeat([1000]).reshape([-1, 1]))[-1][:,
+            0].detach().cpu().numpy()
+
+    plt.hist(d_opt, density=True, label="Optimal NF Samples")
     plt.hist(d, density=True, label="NF Samples")
     plt.legend()
     plt.grid()
