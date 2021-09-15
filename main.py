@@ -208,9 +208,11 @@ if __name__ == '__main__':
                                                               lr=run_parameters.nf_lr,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=run_parameters.nf_weight_decay)
+    check_training = generate_gcrb_validation_function(dm, None, model_opt, 4096, logging=False)
     best_flow_model, flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader,
                                                                validation_dataset_loader,
-                                                               optimizer_flow, run_parameters.n_epochs_flow)
+                                                               optimizer_flow, run_parameters.n_epochs_flow,
+                                                               check_gcrb=check_training)
     # flow_model2check
     torch.save(best_flow_model.state_dict(), os.path.join(run_log_dir, "flow_best.pt"))
 
@@ -228,6 +230,6 @@ if __name__ == '__main__':
 
     # plt.show()
     # neural_network.flow_train(flow, dataset_loader, optimizer_flow)
-    check_final = generate_gcrb_validation_function(dm, None, model_opt, 4096)
+    check_final = generate_gcrb_validation_function(dm, None, model_opt, 4096, logging=True)
     check_final(best_flow_model)  # Check Best Flow
     # check_example(dm, None, model_opt, best_flow_model, min_vector, max_vector)
