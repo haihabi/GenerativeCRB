@@ -12,6 +12,8 @@ import os
 import constants
 import pickle
 import wandb
+import time
+import numpy as np
 
 
 def config():
@@ -47,55 +49,72 @@ def config():
     return cr
 
 
-def check_example(current_data_model, in_regression_network, optimal_model, in_flow_model, in_min_vector, in_max_vector,
-                  batch_size=4096):
-    crb_list = []
-    mse_regression_list = []
-    parameter_list = []
-    ml_mse_list = []
-    gcrb_opt_list = []
-    gcrb_back_list = []
-    gcrb_flow_list = []
-    if in_regression_network is not None:
-        in_regression_network.eval()
-    for theta in current_data_model.parameter_range(20):
-        x = current_data_model.generate_data(512, theta)
+def generate_gcrb_validation_function(current_data_model, in_regression_network, optimal_model, batch_size,
+                                      logging=False):
+    def check_example(in_flow_model):
+        start_time = time.time()
+        crb_list = []
+        mse_regression_list = []
+        parameter_list = []
+        # ml_mse_list = []
+        gcrb_opt_list = []
+        gcrb_back_list = []
+        gcrb_flow_list = []
         if in_regression_network is not None:
-            theta_hat = in_regression_network(x)
-            mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
+            in_regression_network.eval()
+        for theta in current_data_model.parameter_range(20):
 
-        theta_ml = current_data_model.ml_estimator(x)
-        ml_mse_list.append(torch.pow(theta_ml - theta, 2.0).mean().item())
+            if in_regression_network is not None:
+                x = current_data_model.generate_data(512, theta)
+                theta_hat = in_regression_network(x)
+                mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
 
-        crb_list.append(current_data_model.crb(theta).item())
+            # theta_ml = current_data_model.ml_estimator(x)
+            # ml_mse_list.append(torch.pow(theta_ml - theta, 2.0).mean().item())
 
-        fim = gcrb.compute_fim(optimal_model, theta.reshape([1]), batch_size=batch_size)
-        grcb_opt = torch.linalg.inv(fim)
+            crb_list.append(current_data_model.crb(theta).item())
 
-        fim_back = gcrb.compute_fim_backward(in_flow_model, theta.reshape([1]),
-                                             batch_size=batch_size)
-        grcb_back = torch.linalg.inv(fim_back)
+            fim = gcrb.compute_fim(optimal_model, theta.reshape([1]), batch_size=batch_size)
+            grcb_opt = torch.linalg.inv(fim)
 
-        fim = gcrb.compute_fim(in_flow_model, theta.reshape([1]), batch_size=batch_size)
-        grcb_flow = torch.linalg.inv(fim)
+            fim_back = gcrb.compute_fim_backward(in_flow_model, theta.reshape([1]),
+                                                 batch_size=batch_size)
+            grcb_back = torch.linalg.inv(fim_back)
 
-        parameter_list.append(theta.item())
-        gcrb_opt_list.append(grcb_opt.item())
-        gcrb_back_list.append(grcb_back.item())
-        gcrb_flow_list.append(grcb_flow.item())
-    plt.clf()
-    plt.cla()
-    plt.plot(parameter_list, crb_list, label='CRB')
-    plt.plot(parameter_list, gcrb_opt_list, label='GCRB Optimal NF')
-    plt.plot(parameter_list, gcrb_flow_list, label='GCRB NF - DUAL')
-    plt.plot(parameter_list, gcrb_back_list, label='GCRB NF - Backward')
-    # plt.plot(parameter_list, mse_regression_list, label='Regression Network')
-    # plt.plot(parameter_list, ml_mse_list, "--x", label='ML Estimator Error')
-    plt.grid()
-    plt.legend()
-    plt.xlabel(r"$\theta$")
-    plt.ylabel(r"$MSE(\theta)$")
-    wandb.log({"CRB Compare": wandb.Image(plt)})
+            fim = gcrb.compute_fim(in_flow_model, theta.reshape([1]), batch_size=batch_size)
+            grcb_flow = torch.linalg.inv(fim)
+
+            parameter_list.append(theta.item())
+            gcrb_opt_list.append(grcb_opt.item())
+            gcrb_back_list.append(grcb_back.item())
+            gcrb_flow_list.append(grcb_flow.item())
+        gcrb_opt_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_opt_list)).mean()
+        gcrb_flow_dual_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)).mean()
+        gcrb_flow_back_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)).mean()
+        if logging:
+            plt.clf()
+            plt.cla()
+            plt.plot(parameter_list, crb_list, label='CRB')
+            plt.plot(parameter_list, gcrb_opt_list, label='GCRB Optimal NF')
+            plt.plot(parameter_list, gcrb_flow_list, label='GCRB NF - DUAL')
+            plt.plot(parameter_list, gcrb_back_list, label='GCRB NF - Backward')
+
+            plt.grid()
+            plt.legend()
+            plt.xlabel(r"$\theta$")
+            plt.ylabel(r"$MSE(\theta)$")
+
+            wandb.log({"CRB Compare": wandb.Image(plt),
+                       "Optimal GCRB Error": gcrb_opt_error,
+                       "Dual GCRB Error": gcrb_flow_dual_error,
+                       "Back GCRB Error": gcrb_flow_back_error, })
+        print("Time End For Model Check")
+        print(time.time() - start_time)
+        return {"gcrb_opt_nf_error": gcrb_opt_error,
+                "gcrb_dual_nf_error": gcrb_flow_dual_error,
+                "gcrb_back_nf_error": gcrb_flow_back_error}
+
+    return check_example
     # plt.show()
 
 
@@ -209,4 +228,6 @@ if __name__ == '__main__':
 
     # plt.show()
     # neural_network.flow_train(flow, dataset_loader, optimizer_flow)
-    check_example(dm, None, model_opt, best_flow_model, min_vector, max_vector)
+    check_final = generate_gcrb_validation_function(dm, None, model_opt, 4096)
+    check_final(best_flow_model)  # Check Best Flow
+    # check_example(dm, None, model_opt, best_flow_model, min_vector, max_vector)

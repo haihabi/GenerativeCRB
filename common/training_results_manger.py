@@ -46,7 +46,7 @@ class TrainingResultsManger(object):
             is_best = True
         return is_best
 
-    def end_epoch(self, results2point=("loss",), best_metric="loss"):
+    def end_epoch(self, results2point=("loss",), best_metric="loss", additional_results_dict=None):
         training_results_dict = self.training_ma.result
         validation_results_dict = self.val_ma.result
         print("-" * 100)
@@ -68,6 +68,8 @@ class TrainingResultsManger(object):
             if k == best_metric:
                 is_best_val = self.update_best_val(v)
         is_best = is_best_val and is_best_training
+        if additional_results_dict is not None:
+            results_dict2log.update(additional_results_dict)
         wandb.log(results_dict2log)
         return is_best
 
