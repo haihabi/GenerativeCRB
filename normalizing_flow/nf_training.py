@@ -28,6 +28,7 @@ def normalizing_flow_training(flow_model: NormalizingFlowModel, training_dataset
             x, theta = x.to(constants.DEVICE), theta.to(constants.DEVICE)
             val_nll = flow_model.nll_mean(x, cond=theta)
             trm.validation_batch({"loss": val_nll})
+        flow_optimizer.end_epoch()
         return trm.end_epoch(additional_results_dict=check_gcrb(flow_model) if check_gcrb is not None else None)
 
     for i in range(n_epochs):

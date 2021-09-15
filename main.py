@@ -207,8 +207,11 @@ if __name__ == '__main__':
     optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
                                                               lr=run_parameters.nf_lr,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
-                                                              weight_decay=run_parameters.nf_weight_decay)
+                                                              weight_decay=run_parameters.nf_weight_decay,
+                                                              enable_lr_scheduler=True,
+                                                              scheduler_steps=[10, 20])
     check_training = generate_gcrb_validation_function(dm, None, model_opt, 4096, logging=False)
+
     best_flow_model, flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader,
                                                                validation_dataset_loader,
                                                                optimizer_flow, run_parameters.n_epochs_flow,

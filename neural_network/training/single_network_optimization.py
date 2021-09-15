@@ -8,10 +8,14 @@ class OptimizerType(Enum):
     Adam = 1
 
 
+class SchedulerType(Enum):
+    MultiStep = 0
+
+
 class SingleNetworkOptimization(object):
     def __init__(self, network: torch.nn.Module, n_epochs: int,
                  lr=1e-4, weight_decay=1e-3, optimizer_type: OptimizerType = OptimizerType.SGD, grad_norm_clipping=10,
-                 betas=(0.9, 0.999)):
+                 betas=(0.9, 0.999), enable_lr_scheduler=False, gamma: float = 0.1, scheduler_steps: list = []):
         self.n_epochs = n_epochs
         self.network = network
         self.optimizer_type = optimizer_type
@@ -23,7 +27,15 @@ class SingleNetworkOptimization(object):
         else:
             raise NotImplemented
         self.grad_norm_clipping = grad_norm_clipping
+        self.enable_lr_scheduler = enable_lr_scheduler
+        self.scheduler_list = []
+        if self.enable_lr_scheduler:
+            self.scheduler_list.append(
+                torch.optim.lr_scheduler.MultiStepLR(self.opt, milestones=scheduler_steps, gamma=gamma))
         self.norm_type = 2
+
+    def end_epoch(self):
+        [s.step() for s in self.scheduler_list]
 
     def step(self):
 
