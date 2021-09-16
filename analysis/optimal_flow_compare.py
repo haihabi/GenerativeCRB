@@ -8,17 +8,18 @@ from torch.distributions import MultivariateNormal
 from main import generate_flow_model, config
 
 if __name__ == '__main__':
-    param = config()
+    cr = config()
+    param=cr.get_user_arguments()
     # dim = 2
-    dm = data_model.Pow1Div3Gaussian(param.dim, 0.2, 10)
-    prior = MultivariateNormal(torch.zeros(2), torch.eye(2))
+    dm = data_model.LinearModel(param.dim, -10, 10, 0.1)
+    prior = MultivariateNormal(torch.zeros(param.dim), torch.eye(param.dim))
     model_opt = nf.NormalizingFlowModel(prior, [dm._get_optimal_model()])
-    model = generate_flow_model(param, np.zeros(2).astype("float32"), np.zeros(2).astype("float32"))
-    model.load_state_dict(torch.load(f"C:\work\GenerativeCRB\logs\\flow_best.pt"))
+    model = generate_flow_model(param)
+    model.load_state_dict(torch.load(f"/Users/haihabi/projects/GenerativeCRB/logs/17_09_2021_01_42_55/flow_best.pt"))
     model.eval()
     # model.eval()
 
-    d = model.sample(1000, torch.tensor(1.0).repeat([1000]).reshape([-1, 1]))[-1][:, 0].detach().numpy()
+    d = model.sample(1000, torch.tensor(2.0).repeat([1000]).reshape([-1, 1]))[-1][:, 0].detach().numpy()
     plt.hist(d)
     plt.show()
     mse_regression_list = []

@@ -18,7 +18,7 @@ import numpy as np
 
 def config():
     cr = common.ConfigReader()
-    cr.add_parameter('dataset_size', default=100000, type=int)
+    cr.add_parameter('dataset_size', default=400000, type=int)
     cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=512, type=int)
     main_path = os.getcwd()
@@ -28,9 +28,9 @@ def config():
     #############################################
     # Model Config
     #############################################
-    cr.add_parameter('model_type', default="Pow1Div3Gaussian", type=str, enum=data_model.ModelType)
-    cr.add_parameter('dim', default=2, type=int)
-    cr.add_parameter('theta_min', default=0.3, type=float)
+    cr.add_parameter('model_type', default="Linear", type=str, enum=data_model.ModelType)
+    cr.add_parameter('dim', default=16, type=int)
+    cr.add_parameter('theta_min', default=-10, type=float)
     cr.add_parameter('theta_max', default=10.0, type=float)
     cr.add_parameter('sigma_n', default=0.1, type=float)
     cr.add_parameter('load_model_data', type=str)
@@ -43,8 +43,8 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=2, type=int)
-    cr.add_parameter('nf_weight_decay', default=1e-6, type=float)
+    cr.add_parameter('n_epochs_flow', default=40, type=int)
+    cr.add_parameter('nf_weight_decay', default=0, type=float)
     cr.add_parameter('nf_lr', default=1e-4, type=float)
     return cr
 
@@ -88,9 +88,18 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
             gcrb_opt_list.append(grcb_opt.item())
             gcrb_back_list.append(grcb_back.item())
             gcrb_flow_list.append(grcb_flow.item())
-        gcrb_opt_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_opt_list)).mean()
-        gcrb_flow_dual_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)).mean()
-        gcrb_flow_back_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)).mean()
+        gcrb_opt_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_opt_list)) / np.asarray(crb_list)).mean()
+        gcrb_flow_dual_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).mean()
+        # gcrb_flow_dual_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)).mean()
+        gcrb_flow_back_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)) / np.asarray(crb_list)).mean()
+        # gcrb_flow_back_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)).mean()
+        gcrb_flow_back_max_error = (
+                np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)) / np.asarray(crb_list)).max()
+        # gcrb_flow_back_max_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)).max()
+        gcrb_flow_dual_max_error = (
+                np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).max()
+        # gcrb_flow_dual_max_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)).max()
+
         if logging:
             plt.clf()
             plt.cla()
@@ -104,34 +113,34 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
             plt.xlabel(r"$\theta$")
             plt.ylabel(r"$MSE(\theta)$")
 
-            wandb.log({"CRB Compare": wandb.Image(plt),
-                       "Optimal GCRB Error": gcrb_opt_error,
-                       "Dual GCRB Error": gcrb_flow_dual_error,
-                       "Back GCRB Error": gcrb_flow_back_error, })
+            wandb.log({"CRB Compare": wandb.Image(plt)})
         print("Time End For Model Check")
         print(time.time() - start_time)
         return {"gcrb_opt_nf_error": gcrb_opt_error,
                 "gcrb_dual_nf_error": gcrb_flow_dual_error,
-                "gcrb_back_nf_error": gcrb_flow_back_error}
+                "gcrb_back_nf_error": gcrb_flow_back_error,
+                "gcrb_dual_nf_max_error": gcrb_flow_dual_max_error,
+                "gcrb_back_nf_max_error": gcrb_flow_back_max_error,
+                }
 
     return check_example
     # plt.show()
 
 
-def generate_flow_model(in_param, in_mu, in_std, condition_embedding_size=1):
+def generate_flow_model(in_param, condition_embedding_size=1, n_flow_blocks=2, n_layer_cond=4):
     nfs_flow = nf.NSF_CL if True else nf.NSF_AR
-    flows = [nfs_flow(dim=in_param.dim, K=8, B=3, hidden_dim=16) for _ in range(4)]
+    flows = [nfs_flow(dim=in_param.dim, K=8, B=3, hidden_dim=16) for _ in range(n_flow_blocks)]
     # flows = [MAF(dim=2, parity=i%2) for i in range(4)]
     convs = [nf.Invertible1x1Conv(dim=in_param.dim) for _ in flows]
     norms = [nf.ActNorm(in_param.dim) for _ in flows]
     affine = [
-        nf.AffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True, condition_vector_size=0)
-        for i, _ in
-        enumerate(flows)]
-    affine_inj = [nf.AffineInjector(dim=in_param.dim, scale=True, condition_vector_size=condition_embedding_size) for
-                  i, _ in enumerate(flows)]
+        nf.ConditionalAffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True) for i, _ in enumerate(flows)]
+    affine_inj = [
+        nf.AffineInjector(dim=in_param.dim, net_class=nf.generate_mlp_class(24, n_layer=n_layer_cond), scale=True,
+                          condition_vector_size=condition_embedding_size) for
+        i, _ in enumerate(flows)]
 
-    flows = [*list(itertools.chain(*zip(affine, affine_inj, convs, norms, flows)))]
+    flows = [*list(itertools.chain(*zip(affine_inj, convs)))]
     # condition_network = nf.MLP(1, condition_embbeding_size, 24)
     return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(in_param.dim, device=constants.DEVICE),
                                                       torch.eye(in_param.dim, device=constants.DEVICE)), flows,
@@ -176,25 +185,28 @@ if __name__ == '__main__':
     training_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, f"training_{dm.name}_dataset.pickle")
     validation_dataset_file_path = os.path.join(run_parameters.base_dataset_folder,
                                                 f"validation_{dm.name}_dataset.pickle")
-    model_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "model")
+    model_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "models")
+    os.makedirs(model_dataset_file_path, exist_ok=True)
+    if dm.model_exist(model_dataset_file_path):
+        dm.load_data_model(model_dataset_file_path)
+        print("Load Model")
+    else:
+        dm.save_data_model(model_dataset_file_path)
+        print("Save Model")
+
     if os.path.isfile(training_dataset_file_path) and os.path.isfile(validation_dataset_file_path):
         training_data = load_dataset2file(training_dataset_file_path)
         validation_data = load_dataset2file(validation_dataset_file_path)
-        dm.load_data_model(model_dataset_file_path)
+        # dm.load_data_model(model_dataset_file_path)
         print("Loading Dataset Files")
     else:
         training_data = dm.build_dataset(run_parameters.dataset_size)
         validation_data = dm.build_dataset(run_parameters.val_dataset_size)
         save_dataset2file(training_data, training_dataset_file_path)
         save_dataset2file(validation_data, validation_dataset_file_path)
-        dm.save_data_model(model_dataset_file_path)
+        # dm.save_data_model(model_dataset_file_path)
         print("Saving Dataset Files")
-
-    min_vector, max_vector = training_data.get_min_max_vector()  # TODO:make a function
-    min_vector = torch.tensor(min_vector, device=constants.DEVICE).reshape([1, -1])
-    max_vector = torch.tensor(max_vector, device=constants.DEVICE).reshape([1, -1])
-    mu = min_vector
-    std = max_vector - min_vector
+    common.set_seed(0)
 
     training_dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
                                                           shuffle=True, num_workers=0)
@@ -203,18 +215,19 @@ if __name__ == '__main__':
 
     model_opt = dm.get_optimal_model()
 
-    flow_model = generate_flow_model(run_parameters, mu, std)
+    flow_model = generate_flow_model(run_parameters)
     optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
                                                               lr=run_parameters.nf_lr,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=run_parameters.nf_weight_decay,
+                                                              grad_norm_clipping=0.1,
                                                               enable_lr_scheduler=True,
-                                                              scheduler_steps=[10, 20])
+                                                              scheduler_steps=[20])
     check_training = generate_gcrb_validation_function(dm, None, model_opt, 4096, logging=False)
 
     best_flow_model, flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader,
                                                                validation_dataset_loader,
-                                                               optimizer_flow, run_parameters.n_epochs_flow,
+                                                               optimizer_flow,
                                                                check_gcrb=check_training)
     # flow_model2check
     torch.save(best_flow_model.state_dict(), os.path.join(run_log_dir, "flow_best.pt"))
@@ -231,8 +244,5 @@ if __name__ == '__main__':
     plt.grid()
     wandb.log({"NF Histogram": wandb.Image(plt)})
 
-    # plt.show()
-    # neural_network.flow_train(flow, dataset_loader, optimizer_flow)
     check_final = generate_gcrb_validation_function(dm, None, model_opt, 4096, logging=True)
     check_final(best_flow_model)  # Check Best Flow
-    # check_example(dm, None, model_opt, best_flow_model, min_vector, max_vector)

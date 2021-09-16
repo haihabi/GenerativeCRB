@@ -2,6 +2,7 @@ import torch
 import constants
 from torch import nn
 from data_model.base_mode import BaseModel
+import os
 
 
 class LinearOptimalFlow(nn.Module):
@@ -49,9 +50,11 @@ class LinearModel(BaseModel):
         return self.optimal_flow
 
     def save_data_model(self, folder):
-        pass
+        torch.save(self.optimal_flow.state_dict(), os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def load_data_model(self, folder):
+        data=torch.load(os.path.join(folder, f"{self.model_name}_model.pt"))
+        self.optimal_flow.load_state_dict(data)
         pass
 
     def generate_data(self, n_samples, theta):

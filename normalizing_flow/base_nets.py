@@ -41,6 +41,30 @@ class PositionalEncoder(nn.Module):
         return out
 
 
+def generate_mlp_class(n_hidden, n_layer=4, non_linear_function=nn.LeakyReLU(0.2)):
+    class MLPC(nn.Module):
+        """ a simple n-layer MLP """
+
+        def __init__(self, nin, nout):
+            super().__init__()
+            if n_layer == 1:  # The case of singe layer
+                layer_list = [nn.Linear(nin, nout)]
+            else:
+                layer_list = [nn.Linear(nin, n_hidden), non_linear_function]
+                for i in range(max(n_layer - 2, 0)):
+                    layer_list.append(nn.Linear(n_hidden, n_hidden))
+                    # torch.nn.init.xavier_normal_(layer_list[-1].weight)
+                    layer_list.append(non_linear_function)
+                layer_list.append(nn.Linear(n_hidden, nout))
+                # torch.nn.init.xavier_normal_(layer_list[-1].weight)
+            self.net = nn.Sequential(*layer_list)
+
+        def forward(self, x):
+            return self.net(x)
+
+    return MLPC
+
+
 class MLP(nn.Module):
     """ a simple 4-layer MLP """
 
@@ -48,6 +72,7 @@ class MLP(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(nin, nh),
+            nn.BatchNorm1d(nh),
             nn.LeakyReLU(0.2),
             nn.Linear(nh, nh),
             nn.LeakyReLU(0.2),
@@ -55,6 +80,11 @@ class MLP(nn.Module):
             nn.LeakyReLU(0.2),
             nn.Linear(nh, nout),
         )
+        # torch.nn.init.xavier_normal_(self.net[0].weight)
+        # torch.nn.init.xavier_normal_(self.net[2].weight)
+        # torch.nn.init.xavier_normal_(self.net[4].weight)
+        # torch.nn.init.xavier_normal_(self.net[6].weight)
+
 
     def forward(self, x):
         return self.net(x)

@@ -8,8 +8,7 @@ import copy
 
 
 def normalizing_flow_training(flow_model: NormalizingFlowModel, training_dataset, validation_dataset,
-                              flow_optimizer: SingleNetworkOptimization,
-                              n_epochs: int, check_gcrb=None):
+                              flow_optimizer: SingleNetworkOptimization, check_gcrb=None):
     trm = common.TrainingResultsManger()
     best_model = copy.deepcopy(flow_model)
 
@@ -31,13 +30,12 @@ def normalizing_flow_training(flow_model: NormalizingFlowModel, training_dataset
         flow_optimizer.end_epoch()
         return trm.end_epoch(additional_results_dict=check_gcrb(flow_model) if check_gcrb is not None else None)
 
-    for i in range(n_epochs):
-        print(f"Starting Epoch {i + 1} of {n_epochs}")
+    for i in range(flow_optimizer.n_epochs):
+        print(f"Starting Epoch {i + 1} of {flow_optimizer.n_epochs}")
         is_best = run_epoch()
         if is_best:
             print("Update Best Model -:)")
             best_model = copy.deepcopy(flow_model)
 
-    # trm.plot([["training_loss", "validation_loss"], ["training_grad_norm"]])
     trm.print_best_values()
     return best_model, flow_model

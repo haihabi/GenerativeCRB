@@ -39,8 +39,9 @@ class SingleNetworkOptimization(object):
 
     def step(self):
 
-        if self.grad_norm_clipping is not None:
-            grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(self.network.parameters(), max_norm=10).item()
+        if self.grad_norm_clipping > 0:
+            grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(self.network.parameters(),
+                                                                 max_norm=self.grad_norm_clipping).item()
         else:
             grad_norm = torch.norm(
                 torch.stack(

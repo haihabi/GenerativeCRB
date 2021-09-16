@@ -1,3 +1,5 @@
+import os
+
 import common
 from tqdm import tqdm
 import constants
@@ -19,6 +21,13 @@ class BaseModel(object):
     @property
     def name(self) -> str:
         return f"{type(self).__name__}_{self.dim}"
+
+    @property
+    def model_name(self) -> str:
+        return f"{type(self).__name__}_{self.dim}"
+
+    def model_exist(self,folder):
+        return os.path.isfile(os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def parameter_range(self, n_steps):
         return self.theta_min + (self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,
