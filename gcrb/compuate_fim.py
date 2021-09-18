@@ -12,7 +12,7 @@ def jacobian_single(out_gen, z, create_graph=False):
                                   grad_outputs=torch.ones(out_gen[:, i].size(), requires_grad=True).to(
                                       constants.DEVICE),
                                   create_graph=create_graph, retain_graph=True, only_inputs=True, allow_unused=True)[0]
-        if gradients is None: # In case there is not gradients
+        if gradients is None:  # In case there is not gradients
             gradients = torch.zeros(z.shape, requires_grad=True).to(constants.DEVICE)
         grad_list.append(gradients)
     return torch.stack(grad_list, dim=-1).transpose(-1, -2)
@@ -26,24 +26,21 @@ def compute_fim(in_model, in_theta_tensor, batch_size=128):
     return torch.matmul(j_matrix, j_matrix.transpose(dim0=1, dim1=2)).mean(dim=0)
 
 
-def repeat_compute_fim(in_model, in_theta_tensor, batch_size=8192, n_rep=10):
+def repeat_compute_fim(in_model, in_theta_tensor, batch_size=8192, iteration_step=10, delta=0.1):
     fim_list = []
-    for _ in tqdm(range(n_rep)):
-        fim_list.append(compute_fim(in_model, in_theta_tensor, batch_size=batch_size))
-    fim_stack = torch.stack(fim_list)
-    return fim_stack.mean(dim=0), fim_stack.std(dim=0)
+    status = True
+    last_mean = None
+    while status:
+        for _ in tqdm(range(iteration_step)):
+            fim_list.append(compute_fim(in_model, in_theta_tensor, batch_size=batch_size))
+        fim_stack = torch.stack(fim_list)
+        current_mean = fim_stack.mean(dim=0).flatten()
+        if last_mean is not None:
+            status = torch.abs(last_mean - current_mean).max() > delta
+        last_mean = current_mean
 
-
-# def compute_fim_forward(in_model, in_theta_tensor, min_value, max_value, batch_size=128):
-#     delta = (max_value - min_value).reshape([1, -1])
-#     gamma_unifrom = min_value.reshape([1, -1]) + delta * torch.rand([batch_size, min_value.shape[0]])
-#
-#     theta_tensor = in_theta_tensor * torch.ones([batch_size, in_theta_tensor.shape[0]], requires_grad=True,
-#                                                 device=constants.DEVICE)
-#     nll_tensor = in_model.nll(gamma_unifrom, cond=theta_tensor).reshape([-1, 1])
-#     j_matrix = jacobian_single(nll_tensor, theta_tensor)
-#     fim_per_sample = torch.matmul(j_matrix.transpose(dim0=1, dim1=2), j_matrix)
-#     return torch.mean(torch.prod(delta) * fim_per_sample * (torch.exp(-nll_tensor).reshape([-1, 1, 1])), dim=0)
+    print(f"Finished GFIM calculation after {len(fim_list)} Iteration")
+    return fim_stack.mean(dim=0)
 
 
 def compute_fim_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, batch_size=128):

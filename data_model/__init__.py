@@ -2,3 +2,4 @@ from data_model.factory import get_model, ModelType
 from data_model.pow_1_3_gaussian_variance import Pow1Div3Gaussian
 from data_model.gaussian_variance import GaussianVarianceDataModel
 from data_model.linear_example import LinearModel
+from data_model.mean_example import MeanModel

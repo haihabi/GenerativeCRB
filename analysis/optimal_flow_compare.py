@@ -11,11 +11,11 @@ if __name__ == '__main__':
     cr = config()
     param=cr.get_user_arguments()
     # dim = 2
-    dm = data_model.LinearModel(param.dim, -10, 10, 0.1)
+    dm = data_model.MeanModel(param.dim, -10, 10, 0.1)
     prior = MultivariateNormal(torch.zeros(param.dim), torch.eye(param.dim))
     model_opt = nf.NormalizingFlowModel(prior, [dm._get_optimal_model()])
     model = generate_flow_model(param)
-    model.load_state_dict(torch.load(f"/Users/haihabi/projects/GenerativeCRB/logs/17_09_2021_01_42_55/flow_best.pt"))
+    model.load_state_dict(torch.load(f"/Users/haihabi/projects/GenerativeCRB/logs/18_09_2021_15_34_19/flow_best.pt"))
     model.eval()
     # model.eval()
 
@@ -38,13 +38,14 @@ if __name__ == '__main__':
         fim = gcrb.compute_fim(model_opt, theta.reshape([1]), batch_size=4096)  # 2048
         grcb_opt = torch.linalg.inv(fim)
 
-        fim = gcrb.compute_fim(model, theta.reshape([1]), batch_size=4096)  # 2048
+        fim = gcrb.repeat_compute_fim(model, theta.reshape([1]), batch_size=512,iteration_step=128)  # 2048
         grcb = torch.linalg.inv(fim)
         # fim = gcrb.compute_fim(in_flow_model, theta.reshape([1]), batch_size=512)
         # grcb_flow = torch.linalg.inv(fim)
         parameter_list.append(theta.item())
         gcrb_opt_list.append(grcb_opt.item())
         gcrb_list.append(grcb.item())
+        print(100*(gcrb_list[-1]-crb_list[-1])/crb_list[-1])
         # gcrb_flow_list.append(grcb_flow.item())
 
     plt.plot(parameter_list, crb_list, label="CRB")

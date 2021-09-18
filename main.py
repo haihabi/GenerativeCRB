@@ -32,7 +32,7 @@ def config():
     cr.add_parameter('dim', default=16, type=int)
     cr.add_parameter('theta_min', default=-10, type=float)
     cr.add_parameter('theta_max', default=10.0, type=float)
-    cr.add_parameter('sigma_n', default=0.01, type=float)
+    cr.add_parameter('sigma_n', default=1.0, type=float)
     ############################################
     # Regression Network
     #############################################
@@ -230,6 +230,7 @@ if __name__ == '__main__':
                                                                check_gcrb=check_training)
     # flow_model2check
     torch.save(best_flow_model.state_dict(), os.path.join(run_log_dir, "flow_best.pt"))
+    torch.save(flow_model.state_dict(), os.path.join(run_log_dir, "flow_last.pt"))
 
     d = best_flow_model.sample(1000, torch.tensor(2.0, device=constants.DEVICE).repeat([1000]).reshape([-1, 1]))[-1][:,
         0].detach().cpu().numpy()
