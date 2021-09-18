@@ -45,6 +45,8 @@ def config():
     cr.add_parameter('n_epochs_flow', default=80, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
     cr.add_parameter('nf_lr', default=1e-4, type=float)
+
+    cr.add_parameter('n_flow_blocks', default=2, type=int)
     return cr
 
 
@@ -126,7 +128,8 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
     # plt.show()
 
 
-def generate_flow_model(in_param, condition_embedding_size=1, n_flow_blocks=2, n_layer_cond=4):
+def generate_flow_model(in_param, condition_embedding_size=1, n_layer_cond=4):
+    n_flow_blocks = in_param.n_flow_blocks
     nfs_flow = nf.NSF_CL if True else nf.NSF_AR
     flows = [nfs_flow(dim=in_param.dim, K=8, B=3, hidden_dim=16) for _ in range(n_flow_blocks)]
     # flows = [MAF(dim=2, parity=i%2) for i in range(4)]
