@@ -28,12 +28,11 @@ def config():
     #############################################
     # Model Config
     #############################################
-    cr.add_parameter('model_type', default="Linear", type=str, enum=data_model.ModelType)
+    cr.add_parameter('model_type', default="Mean", type=str, enum=data_model.ModelType)
     cr.add_parameter('dim', default=16, type=int)
     cr.add_parameter('theta_min', default=-10, type=float)
     cr.add_parameter('theta_max', default=10.0, type=float)
-    cr.add_parameter('sigma_n', default=0.1, type=float)
-    cr.add_parameter('load_model_data', type=str)
+    cr.add_parameter('sigma_n', default=0.01, type=float)
     ############################################
     # Regression Network
     #############################################
@@ -43,7 +42,7 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=40, type=int)
+    cr.add_parameter('n_epochs_flow', default=80, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
     cr.add_parameter('nf_lr', default=1e-4, type=float)
     return cr
@@ -132,7 +131,7 @@ def generate_flow_model(in_param, condition_embedding_size=1, n_flow_blocks=2, n
     flows = [nfs_flow(dim=in_param.dim, K=8, B=3, hidden_dim=16) for _ in range(n_flow_blocks)]
     # flows = [MAF(dim=2, parity=i%2) for i in range(4)]
     convs = [nf.Invertible1x1Conv(dim=in_param.dim) for _ in flows]
-    norms = [nf.ActNorm(in_param.dim) for _ in flows]
+    norms = [nf.BatchNorm(in_param.dim) for _ in flows]
     affine = [
         nf.ConditionalAffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True) for i, _ in enumerate(flows)]
     affine_inj = [
@@ -141,7 +140,7 @@ def generate_flow_model(in_param, condition_embedding_size=1, n_flow_blocks=2, n
         i, _ in enumerate(flows)]
 
     flows = [*list(itertools.chain(*zip(affine_inj, convs)))]
-    # condition_network = nf.MLP(1, condition_embbeding_size, 24)
+
     return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(in_param.dim, device=constants.DEVICE),
                                                       torch.eye(in_param.dim, device=constants.DEVICE)), flows,
                                    condition_network=None).to(
@@ -222,7 +221,7 @@ if __name__ == '__main__':
                                                               weight_decay=run_parameters.nf_weight_decay,
                                                               grad_norm_clipping=0.1,
                                                               enable_lr_scheduler=True,
-                                                              scheduler_steps=[20])
+                                                              scheduler_steps=[40])
     check_training = generate_gcrb_validation_function(dm, None, model_opt, 4096, logging=False)
 
     best_flow_model, flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader,
