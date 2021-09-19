@@ -15,7 +15,7 @@ class MeanOptimalFlow(nn.Module):
         # b = b / torch.norm(b)
         # bbt = torch.matmul(b.transpose(dim0=0, dim1=1), b)
         self.sigma_n = sigma_n
-        c_xx = torch.eye(dim) * (self.sigma_n ** 2)
+        c_xx = torch.eye(dim) * self.sigma_n
         l_matrix = torch.linalg.cholesky(c_xx)
         self.l_matrix = l_matrix
         self.l_matrix_inv = torch.linalg.inv(l_matrix)

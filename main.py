@@ -18,7 +18,7 @@ import numpy as np
 
 def config():
     cr = common.ConfigReader()
-    cr.add_parameter('dataset_size', default=400000, type=int)
+    cr.add_parameter('dataset_size', default=800000, type=int)
     cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=512, type=int)
     main_path = os.getcwd()
@@ -114,7 +114,13 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
             plt.xlabel(r"$\theta$")
             plt.ylabel(r"$MSE(\theta)$")
 
-            wandb.log({"CRB Compare": wandb.Image(plt)})
+            wandb.log({"CRB Compare": wandb.Image(plt),
+                       "gcrb_opt_nf_error_final": gcrb_opt_error,
+                       "gcrb_dual_nf_error_final": gcrb_flow_dual_error,
+                       "gcrb_back_nf_error_final": gcrb_flow_back_error,
+                       "gcrb_dual_nf_max_error_final": gcrb_flow_dual_max_error,
+                       "gcrb_back_nf_max_error_final": gcrb_flow_back_max_error,
+                       })
         print("Time End For Model Check")
         print(time.time() - start_time)
         return {"gcrb_opt_nf_error": gcrb_opt_error,
@@ -147,7 +153,7 @@ def generate_flow_model(in_param, condition_embedding_size=1, n_layer_cond=4, sp
     for i in range(in_param.n_flow_blocks):
         if affine_coupling:
             flows.append(
-                nf.ConditionalAffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True))
+                nf.AffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True))
         flows.append(
             nf.AffineInjector(dim=in_param.dim, net_class=nf.generate_mlp_class(24, n_layer=n_layer_cond), scale=True,
                               condition_vector_size=condition_embedding_size))
@@ -208,6 +214,7 @@ if __name__ == '__main__':
     else:
         dm.save_data_model(model_dataset_file_path)
         print("Save Model")
+    dm.save_data_model(wandb.run.dir)
 
     if os.path.isfile(training_dataset_file_path) and os.path.isfile(validation_dataset_file_path):
         training_data = load_dataset2file(training_dataset_file_path)
@@ -245,8 +252,8 @@ if __name__ == '__main__':
                                                                optimizer_flow,
                                                                check_gcrb=check_training)
     # flow_model2check
-    torch.save(best_flow_model.state_dict(), os.path.join(run_log_dir, "flow_best.pt"))
-    torch.save(flow_model.state_dict(), os.path.join(run_log_dir, "flow_last.pt"))
+    torch.save(best_flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_best.pt"))
+    torch.save(flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_last.pt"))
 
     d = best_flow_model.sample(1000, torch.tensor(2.0, device=constants.DEVICE).repeat([1000]).reshape([-1, 1]))[-1][:,
         0].detach().cpu().numpy()
