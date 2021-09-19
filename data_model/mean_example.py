@@ -3,19 +3,20 @@ import constants
 from torch import nn
 from data_model.base_mode import BaseModel
 import os
+import constants
 
 
 class MeanOptimalFlow(nn.Module):
     def __init__(self, dim, parameter_vector_size, sigma_n):
         super().__init__()
-        a = torch.randn([dim, parameter_vector_size])
+        a = torch.randn([dim, parameter_vector_size], device=constants.DEVICE)
         a_norm = a / torch.sqrt(torch.pow(torch.abs(a), 2.0).sum())
         self.a = nn.Parameter(a_norm, requires_grad=False)
         # b = torch.randn([dim, dim])
         # b = b / torch.norm(b)
         # bbt = torch.matmul(b.transpose(dim0=0, dim1=1), b)
         self.sigma_n = sigma_n
-        c_xx = torch.eye(dim) * self.sigma_n
+        c_xx = torch.eye(dim, device=constants.DEVICE) * self.sigma_n
         l_matrix = torch.linalg.cholesky(c_xx)
         self.l_matrix = l_matrix
         self.l_matrix_inv = torch.linalg.inv(l_matrix)
