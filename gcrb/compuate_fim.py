@@ -1,8 +1,11 @@
+import math
+
 import torch
 import torch.autograd as autograd
 import constants
 import normalizing_flow as nf
 from tqdm import tqdm
+import numpy as np
 
 
 def jacobian_single(out_gen, z, create_graph=False):
@@ -18,32 +21,43 @@ def jacobian_single(out_gen, z, create_graph=False):
     return torch.stack(grad_list, dim=-1).transpose(-1, -2)
 
 
-def compute_fim(in_model, in_theta_tensor, batch_size=128):
+def compute_fim_tensor(in_model, in_theta_tensor, batch_size=128):
     theta_tensor = in_theta_tensor * torch.ones([batch_size, in_theta_tensor.shape[0]], requires_grad=True,
                                                 device=constants.DEVICE)
     nll_tensor = in_model.sample_nll(batch_size, cond=theta_tensor).reshape([-1, 1])
     j_matrix = jacobian_single(nll_tensor, theta_tensor)
-    return torch.matmul(j_matrix, j_matrix.transpose(dim0=1, dim1=2)).mean(dim=0)
+    return torch.matmul(j_matrix, j_matrix.transpose(dim0=1, dim1=2))
 
 
-def repeat_compute_fim(in_model, in_theta_tensor, batch_size=8192, iteration_step=10, delta=0.1):
+def compute_fim(in_model, in_theta_tensor, batch_size=128):
+    return compute_fim_tensor(in_model, in_theta_tensor, batch_size).mean(dim=0)
+
+
+def repeat_compute_fim(in_model, in_theta_tensor, batch_size=128, eps=0.01, p_min=0.01, n_max=1e7):
     fim_list = []
     status = True
-    last_mean = None
+    iteration_step = 1
     while status:
         for _ in tqdm(range(iteration_step)):
-            fim_list.append(compute_fim(in_model, in_theta_tensor, batch_size=batch_size))
-        fim_stack = torch.stack(fim_list)
-        current_mean = fim_stack.mean(dim=0).flatten()
-        if last_mean is not None:
-            status = torch.abs(last_mean - current_mean).max() > delta
-        last_mean = current_mean
+            fim_list.append(compute_fim_tensor(in_model, in_theta_tensor, batch_size=batch_size))
+        fim_stack = torch.cat(fim_list, dim=0)
 
-    print(f"Finished GFIM calculation after {len(fim_list)} Iteration")
+        fim_stack = fim_stack[torch.logical_not(torch.any(torch.any(fim_stack.isnan(), dim=2), dim=1)),
+                    :]  # Clear non values
+
+        var_mean_ratio = fim_stack.var(dim=0).max() / (torch.pow(fim_stack.mean(dim=0).max(), 2.0) + 1e-6)
+        n_est = int(torch.ceil(var_mean_ratio / (p_min * (eps ** 2))).item())
+        print(n_est)
+        if n_est > fim_stack.shape[0] and fim_stack.shape[0] < n_max:
+            iteration_step = min(math.ceil((n_est - fim_stack.shape[0]) / batch_size), 1000)
+        else:
+            status = False
+
+    print(f"Finished GFIM calculation after {fim_stack.shape[0]} Iteration")
     return fim_stack.mean(dim=0)
 
 
-def compute_fim_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, batch_size=128):
+def compute_fim_tensors_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, batch_size=128):
     theta_tensor = in_theta_tensor * torch.ones([batch_size, in_theta_tensor.shape[0]], requires_grad=True,
                                                 device=constants.DEVICE)
     z = in_model.prior.sample((batch_size,))
@@ -78,4 +92,8 @@ def compute_fim_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, bat
     term_total = term_total.unsqueeze(dim=-1)
     fim = torch.matmul(term_total.transpose(dim0=1, dim1=2), term_total)
 
-    return fim.mean(dim=0)
+    return fim
+
+
+def compute_fim_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, batch_size=128):
+    return compute_fim_tensors_backward(in_model, in_theta_tensor, batch_size).mean(dim=0)

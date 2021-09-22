@@ -8,6 +8,7 @@ import normalizing_flow as nf
 from torch.distributions import MultivariateNormal
 import gcrb
 import itertools
+from torch import nn
 import os
 import constants
 import pickle
@@ -21,6 +22,7 @@ def config():
     cr.add_parameter('dataset_size', default=800000, type=int)
     cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=512, type=int)
+    cr.add_parameter('batch_size_validation', default=128, type=int)
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)
@@ -47,6 +49,8 @@ def config():
     cr.add_parameter('nf_lr', default=1e-4, type=float)
 
     cr.add_parameter('n_flow_blocks', default=2, type=int)
+    cr.add_parameter('evaluation_every_step', action="store_true")
+    cr.add_parameter('spline_flow', action="store_true")
     return cr
 
 
@@ -70,101 +74,64 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
                 theta_hat = in_regression_network(x)
                 mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
 
-            # theta_ml = current_data_model.ml_estimator(x)
-            # ml_mse_list.append(torch.pow(theta_ml - theta, 2.0).mean().item())
-
             crb_list.append(current_data_model.crb(theta).item())
 
-            fim = gcrb.compute_fim(optimal_model, theta.reshape([1]), batch_size=batch_size)
+            fim = gcrb.repeat_compute_fim(optimal_model, theta.reshape([1]), batch_size=batch_size)
             grcb_opt = torch.linalg.inv(fim)
 
-            fim_back = gcrb.compute_fim_backward(in_flow_model, theta.reshape([1]),
-                                                 batch_size=batch_size)
-            grcb_back = torch.linalg.inv(fim_back)
-
-            fim = gcrb.compute_fim(in_flow_model, theta.reshape([1]), batch_size=batch_size)
-            grcb_flow = torch.linalg.inv(fim)
+            fim_back = gcrb.repeat_compute_fim(in_flow_model, theta.reshape([1]),
+                                               batch_size=batch_size)
+            grcb_flow = torch.linalg.inv(fim_back)
 
             parameter_list.append(theta.item())
             gcrb_opt_list.append(grcb_opt.item())
-            gcrb_back_list.append(grcb_back.item())
             gcrb_flow_list.append(grcb_flow.item())
         gcrb_opt_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_opt_list)) / np.asarray(crb_list)).mean()
         gcrb_flow_dual_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).mean()
-        # gcrb_flow_dual_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)).mean()
-        gcrb_flow_back_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)) / np.asarray(crb_list)).mean()
-        # gcrb_flow_back_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)).mean()
-        gcrb_flow_back_max_error = (
-                np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)) / np.asarray(crb_list)).max()
-        # gcrb_flow_back_max_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_back_list)).max()
+
         gcrb_flow_dual_max_error = (
                 np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).max()
-        # gcrb_flow_dual_max_error = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)).max()
 
         if logging:
-            plt.clf()
-            plt.cla()
-            plt.plot(parameter_list, crb_list, label='CRB')
-            plt.plot(parameter_list, gcrb_opt_list, label='GCRB Optimal NF')
-            plt.plot(parameter_list, gcrb_flow_list, label='GCRB NF - DUAL')
-            plt.plot(parameter_list, gcrb_back_list, label='GCRB NF - Backward')
-
-            plt.grid()
-            plt.legend()
-            plt.xlabel(r"$\theta$")
-            plt.ylabel(r"$MSE(\theta)$")
-
-            wandb.log({"CRB Compare": wandb.Image(plt),
-                       "gcrb_opt_nf_error_final": gcrb_opt_error,
-                       "gcrb_dual_nf_error_final": gcrb_flow_dual_error,
-                       "gcrb_back_nf_error_final": gcrb_flow_back_error,
-                       "gcrb_dual_nf_max_error_final": gcrb_flow_dual_max_error,
-                       "gcrb_back_nf_max_error_final": gcrb_flow_back_max_error,
+            wandb.log({"gcrb_opt_nf_error_final": gcrb_opt_error,
+                       "gcrb_nf_error_final": gcrb_flow_dual_error,
+                       "gcrb_nf_max_error_final": gcrb_flow_dual_max_error,
                        })
         print("Time End For Model Check")
         print(time.time() - start_time)
         return {"gcrb_opt_nf_error": gcrb_opt_error,
-                "gcrb_dual_nf_error": gcrb_flow_dual_error,
-                "gcrb_back_nf_error": gcrb_flow_back_error,
-                "gcrb_dual_nf_max_error": gcrb_flow_dual_max_error,
-                "gcrb_back_nf_max_error": gcrb_flow_back_max_error,
+                "gcrb_nf_error": gcrb_flow_dual_error,
+                "gcrb_nf_max_error": gcrb_flow_dual_max_error,
                 }
 
     return check_example
     # plt.show()
 
 
-def generate_flow_model(in_param, condition_embedding_size=1, n_layer_cond=4, spline_b=3, spline_k=8):
-    # n_flow_blocks = in_param.n_flow_blocks
-    # nfs_flow = nf.NSF_CL if True else nf.NSF_AR
-    # flows = [nfs_flow(dim=in_param.dim, K=8, B=3, hidden_dim=16) for _ in range(n_flow_blocks)]
-    # flows = [MAF(dim=2, parity=i%2) for i in range(4)]
-    # convs = [nf.Invertible1x1Conv(dim=in_param.dim) for _ in range(n_flow_blocks)]
-    # norms = [nf.BatchNorm(in_param.dim) for _ in range(n_flow_blocks)]
-    # affine = [
-    #     nf.ConditionalAffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True) for i in range(n_flow_blocks)]
-    # affine_inj = [
-    #     nf.AffineInjector(dim=in_param.dim, net_class=nf.generate_mlp_class(24, n_layer=n_layer_cond), scale=True,
-    #                       condition_vector_size=condition_embedding_size) for
-    #     _ in range(n_flow_blocks)]
+def generate_flow_model(dim, n_flow_blocks, spline_flow, condition_embedding_size=1, n_layer_cond=4, spline_b=3,
+                        spline_k=8):
     flows = []
     affine_coupling = False
-    spline_flow = False
-    for i in range(in_param.n_flow_blocks):
+
+    def generate_nl():
+        return nn.PReLU(init=1.0)
+
+    for i in range(n_flow_blocks):
         if affine_coupling:
             flows.append(
-                nf.AffineHalfFlow(dim=in_param.dim, parity=i % 2, scale=True))
+                nf.AffineHalfFlow(dim=dim, parity=i % 2, scale=True))
         flows.append(
-            nf.AffineInjector(dim=in_param.dim, net_class=nf.generate_mlp_class(24, n_layer=n_layer_cond), scale=True,
+            nf.AffineInjector(dim=dim, net_class=nf.generate_mlp_class(24, n_layer=n_layer_cond,
+                                                                       non_linear_function=generate_nl), scale=True,
                               condition_vector_size=condition_embedding_size))
 
         flows.append(
-            nf.Invertible1x1Conv(dim=in_param.dim))
-        if spline_flow:
-            flows.append(nf.NSF_CL(dim=in_param.dim, K=spline_k, B=spline_b, hidden_dim=16))
+            nf.Invertible1x1Conv(dim=dim))
+        if spline_flow and i != (n_flow_blocks - 1):
+            flows.append(nf.NSF_CL(dim=dim, K=spline_k, B=spline_b))
 
-    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(in_param.dim, device=constants.DEVICE),
-                                                      torch.eye(in_param.dim, device=constants.DEVICE)), flows,
+    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(dim, device=constants.DEVICE),
+                                                      torch.eye(dim, device=constants.DEVICE)), flows,
                                    condition_network=None).to(
         constants.DEVICE)
 
@@ -237,7 +204,7 @@ if __name__ == '__main__':
 
     model_opt = dm.get_optimal_model()
 
-    flow_model = generate_flow_model(run_parameters)
+    flow_model = generate_flow_model(run_parameters.dim, run_parameters.n_flow_blocks, run_parameters.spline_flow)
     optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
                                                               lr=run_parameters.nf_lr,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
@@ -245,27 +212,19 @@ if __name__ == '__main__':
                                                               grad_norm_clipping=0.1,
                                                               enable_lr_scheduler=True,
                                                               scheduler_steps=[40])
-    check_training = generate_gcrb_validation_function(dm, None, model_opt, 4096, logging=False)
+    check_training = generate_gcrb_validation_function(dm, None, model_opt, run_parameters.batch_size_validation,
+                                                       logging=False)
 
     best_flow_model, flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader,
                                                                validation_dataset_loader,
                                                                optimizer_flow,
-                                                               check_gcrb=check_training)
-    # flow_model2check
+                                                               check_gcrb=check_training if run_parameters.evaluation_every_step else None)
+    # Save Flow to Weights and Bias
     torch.save(best_flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_best.pt"))
     torch.save(flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_last.pt"))
+    torch.save(best_flow_model.state_dict(), os.path.join(run_log_dir, "flow_best.pt"))
+    torch.save(flow_model.state_dict(), os.path.join(run_log_dir, "flow_last.pt"))
 
-    d = best_flow_model.sample(1000, torch.tensor(2.0, device=constants.DEVICE).repeat([1000]).reshape([-1, 1]))[-1][:,
-        0].detach().cpu().numpy()
-
-    d_opt = model_opt.sample(1000, torch.tensor(2.0, device=constants.DEVICE).repeat([1000]).reshape([-1, 1]))[-1][:,
-            0].detach().cpu().numpy()
-
-    plt.hist(d_opt, density=True, label="Optimal NF Samples")
-    plt.hist(d, density=True, label="NF Samples")
-    plt.legend()
-    plt.grid()
-    wandb.log({"NF Histogram": wandb.Image(plt)})
-
-    check_final = generate_gcrb_validation_function(dm, None, model_opt, 4096, logging=True)
+    check_final = generate_gcrb_validation_function(dm, None, model_opt, run_parameters.batch_size_validation,
+                                                    logging=True)
     check_final(best_flow_model)  # Check Best Flow

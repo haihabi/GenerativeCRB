@@ -41,7 +41,7 @@ class PositionalEncoder(nn.Module):
         return out
 
 
-def generate_mlp_class(n_hidden, n_layer=4, non_linear_function=nn.LeakyReLU(0.2)):
+def generate_mlp_class(n_hidden, n_layer=4, non_linear_function=nn.LeakyReLU):
     class MLPC(nn.Module):
         """ a simple n-layer MLP """
 
@@ -50,11 +50,11 @@ def generate_mlp_class(n_hidden, n_layer=4, non_linear_function=nn.LeakyReLU(0.2
             if n_layer == 1:  # The case of singe layer
                 layer_list = [nn.Linear(nin, nout)]
             else:
-                layer_list = [nn.Linear(nin, n_hidden), non_linear_function]
+                layer_list = [nn.Linear(nin, n_hidden), non_linear_function()]
                 for i in range(max(n_layer - 2, 0)):
                     layer_list.append(nn.Linear(n_hidden, n_hidden))
                     # torch.nn.init.xavier_normal_(layer_list[-1].weight)
-                    layer_list.append(non_linear_function)
+                    layer_list.append(non_linear_function())
                 layer_list.append(nn.Linear(n_hidden, nout))
                 # torch.nn.init.xavier_normal_(layer_list[-1].weight)
             self.net = nn.Sequential(*layer_list)
