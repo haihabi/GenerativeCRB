@@ -93,7 +93,14 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
                 np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).max()
 
         if logging:
-            wandb.log({"gcrb_opt_nf_error_final": gcrb_opt_error,
+            plt.plot(parameter_list, gcrb_opt_list, label="GCRB Optimal NF")
+            plt.plot(parameter_list, gcrb_flow_list, label="GCRB NF")
+            plt.plot(parameter_list, crb_list, label="CRB")
+            plt.legend()
+            plt.xlabel(r"$\theta$")
+            plt.ylabel(r"$MSE(\theta)$")
+            wandb.log({"CRB Compare": wandb.Image(plt),
+                       "gcrb_opt_nf_error_final": gcrb_opt_error,
                        "gcrb_nf_error_final": gcrb_flow_dual_error,
                        "gcrb_nf_max_error_final": gcrb_flow_dual_max_error,
                        })
