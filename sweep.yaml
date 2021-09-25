@@ -1,0 +1,20 @@
+program: main.py
+method: bayes
+metric:
+  name: gcrb_nf_max_error_final
+  goal: minimize
+parameters:
+  nf_lr:
+    min: 1e-5
+    max: 1e-3
+  n_flow_blocks:
+    min: 2
+    max: 6
+  spline_flow:
+    value: True
+  model_type:
+    value: Pow1Div3Gaussian
+  dim:
+    value: 2
+  theta_min:
+    value: 0.3

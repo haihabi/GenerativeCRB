@@ -19,10 +19,10 @@ import numpy as np
 
 def config():
     cr = common.ConfigReader()
-    cr.add_parameter('dataset_size', default=200000, type=int)
+    cr.add_parameter('dataset_size', default=50000, type=int)
     cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=512, type=int)
-    cr.add_parameter('batch_size_validation', default=512, type=int)
+    cr.add_parameter('batch_size_validation', default=4096, type=int)
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)
@@ -47,8 +47,11 @@ def config():
     cr.add_parameter('n_epochs_flow', default=240, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
     cr.add_parameter('nf_lr', default=1e-4, type=float)
+    cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
     cr.add_parameter('n_flow_blocks', default=2, type=int)
+    cr.add_parameter('n_layer_cond', default=4, type=int)
+    cr.add_parameter('hidden_size_cond', default=24, type=int)
     cr.add_parameter('evaluation_every_step', action="store_true")
     cr.add_parameter('spline_flow', action="store_true")
     return cr
@@ -115,7 +118,8 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
     # plt.show()
 
 
-def generate_flow_model(dim, n_flow_blocks, spline_flow, condition_embedding_size=1, n_layer_cond=4, spline_b=3,
+def generate_flow_model(dim, n_flow_blocks, spline_flow, condition_embedding_size=1, n_layer_cond=4,
+                        hidden_size_cond=24, spline_b=3,
                         spline_k=8):
     flows = []
     affine_coupling = False
@@ -128,7 +132,7 @@ def generate_flow_model(dim, n_flow_blocks, spline_flow, condition_embedding_siz
             flows.append(
                 nf.AffineHalfFlow(dim=dim, parity=i % 2, scale=True))
         flows.append(
-            nf.AffineInjector(dim=dim, net_class=nf.generate_mlp_class(24, n_layer=n_layer_cond,
+            nf.AffineInjector(dim=dim, net_class=nf.generate_mlp_class(hidden_size_cond, n_layer=n_layer_cond,
                                                                        non_linear_function=generate_nl), scale=True,
                               condition_vector_size=condition_embedding_size))
 
@@ -194,14 +198,12 @@ if __name__ == '__main__':
     if os.path.isfile(training_dataset_file_path) and os.path.isfile(validation_dataset_file_path):
         training_data = load_dataset2file(training_dataset_file_path)
         validation_data = load_dataset2file(validation_dataset_file_path)
-        # dm.load_data_model(model_dataset_file_path)
         print("Loading Dataset Files")
     else:
         training_data = dm.build_dataset(run_parameters.dataset_size)
         validation_data = dm.build_dataset(run_parameters.val_dataset_size)
         save_dataset2file(training_data, training_dataset_file_path)
         save_dataset2file(validation_data, validation_dataset_file_path)
-        # dm.save_data_model(model_dataset_file_path)
         print("Saving Dataset Files")
     common.set_seed(0)
 
@@ -212,12 +214,15 @@ if __name__ == '__main__':
 
     model_opt = dm.get_optimal_model()
 
-    flow_model = generate_flow_model(run_parameters.dim, run_parameters.n_flow_blocks, run_parameters.spline_flow)
+    flow_model = generate_flow_model(run_parameters.dim, run_parameters.n_flow_blocks, run_parameters.spline_flow,
+                                     n_layer_cond=run_parameters.n_layer_cond,
+                                     hidden_size_cond=run_parameters.hidden_size_cond
+                                     )
     optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
                                                               lr=run_parameters.nf_lr,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=run_parameters.nf_weight_decay,
-                                                              grad_norm_clipping=0.1,
+                                                              grad_norm_clipping=run_parameters.grad_norm_clipping,
                                                               enable_lr_scheduler=True,
                                                               scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
     check_training = generate_gcrb_validation_function(dm, None, model_opt, run_parameters.batch_size_validation,
