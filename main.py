@@ -19,10 +19,10 @@ import numpy as np
 
 def config():
     cr = common.ConfigReader()
-    cr.add_parameter('dataset_size', default=800000, type=int)
+    cr.add_parameter('dataset_size', default=200000, type=int)
     cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=512, type=int)
-    cr.add_parameter('batch_size_validation', default=128, type=int)
+    cr.add_parameter('batch_size_validation', default=512, type=int)
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)
@@ -44,7 +44,7 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=80, type=int)
+    cr.add_parameter('n_epochs_flow', default=240, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
     cr.add_parameter('nf_lr', default=1e-4, type=float)
 
@@ -177,9 +177,10 @@ if __name__ == '__main__':
     dm = data_model.get_model(run_parameters.model_type, generate_model_parameter_dict(run_parameters))
 
     os.makedirs(run_parameters.base_dataset_folder, exist_ok=True)  # TODO:make a function & change name to model names
-    training_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, f"training_{dm.name}_dataset.pickle")
+    training_dataset_file_path = os.path.join(run_parameters.base_dataset_folder,
+                                              f"training_{dm.name}_{run_parameters.dataset_size}_dataset.pickle")
     validation_dataset_file_path = os.path.join(run_parameters.base_dataset_folder,
-                                                f"validation_{dm.name}_dataset.pickle")
+                                                f"validation_{dm.name}_{run_parameters.val_dataset_size}_dataset.pickle")
     model_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "models")
     os.makedirs(model_dataset_file_path, exist_ok=True)
     if dm.model_exist(model_dataset_file_path):
@@ -218,7 +219,7 @@ if __name__ == '__main__':
                                                               weight_decay=run_parameters.nf_weight_decay,
                                                               grad_norm_clipping=0.1,
                                                               enable_lr_scheduler=True,
-                                                              scheduler_steps=[40])
+                                                              scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
     check_training = generate_gcrb_validation_function(dm, None, model_opt, run_parameters.batch_size_validation,
                                                        logging=False)
 
