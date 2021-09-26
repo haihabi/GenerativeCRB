@@ -9,9 +9,16 @@ parameters:
     max: 1e-3
   n_flow_blocks:
     min: 2
+    max: 10
+  n_layer_cond:
+    min: 2
     max: 6
-  spline_flow:
-    value: True
+  hidden_size_cond:
+    min: 16
+    max: 32
+  n_epochs_flow:
+    min: 120
+    max: 480
   model_type:
     value: Pow1Div3Gaussian
   dim:
