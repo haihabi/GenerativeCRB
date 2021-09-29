@@ -1,0 +1,1 @@
+tsp python main.py --model_type Pow1Div3Gaussian --dataset_size 200000 --n_layer_cond 4 --nf_lr 0.0009683 --dim 2 --theta_min 0.3 --hidden_size_cond 29 --n_epochs_flow 146 --n_flow_blocks 9 --spline_flow true

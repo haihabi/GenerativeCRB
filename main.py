@@ -22,7 +22,7 @@ def config():
     cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=512, type=int)
     cr.add_parameter('batch_size_validation', default=4096, type=int)
-    cr.add_parameter('group', default="Dataset-size", type=str)
+    cr.add_parameter('group', default="", type=str)
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)

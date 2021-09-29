@@ -5,8 +5,8 @@ metric:
   goal: minimize
 parameters:
   nf_lr:
-    min: 1e-5
-    max: 1e-3
+    min: 0.00001
+    max: 0.001
   n_flow_blocks:
     min: 2
     max: 10
@@ -25,3 +25,5 @@ parameters:
     value: 2
   theta_min:
     value: 0.3
+  spline_flow:
+    value: true
