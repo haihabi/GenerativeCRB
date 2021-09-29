@@ -26,6 +26,16 @@ class ConfigReader(object):
             input_dict[name] = c[input_dict[name]]
         return input_dict
 
+    def _handle_boolean(self, input_dict):
+        # output_dict = copy.copy(input_dict)
+        for name, c in input_dict.items():
+            if isinstance(c, str):
+                if c.lower() == "true":
+                    input_dict[name] = True
+                if c.lower() == "false":
+                    input_dict[name] = False
+        # return output_dict
+
     def _handle_enums2str(self, input_dict):
         for name, c in self.enum_dict.items():
             input_dict[name] = input_dict[name].name
@@ -43,12 +53,14 @@ class ConfigReader(object):
                 if lcfg.get(pname) is not None:
                     parameters_dict[pname] = lcfg.get(pname)
         self._handle_enums(parameters_dict)
+        self._handle_boolean(parameters_dict)
         self.parameters = Namespace(**parameters_dict)
         return self.parameters
 
     def read_parameters(self):
         args = copy.deepcopy(self.get_user_arguments())
         self._handle_enums(args.__dict__)
+        self._handle_boolean(args.__dict__)
         return args
 
     def save_config(self, folder):
@@ -68,4 +80,5 @@ class ConfigReader(object):
         with open(config_file, 'r') as outfile:
             cfg = json.load(outfile)
         self._handle_enums(cfg)
+        self._handle_boolean(cfg)
         return cfg

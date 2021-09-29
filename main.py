@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 import normalizing_flow as nf
 from torch.distributions import MultivariateNormal
 import gcrb
-import itertools
 from torch import nn
 import os
 import constants
@@ -19,10 +18,11 @@ import numpy as np
 
 def config():
     cr = common.ConfigReader()
-    cr.add_parameter('dataset_size', default=50000, type=int)
+    cr.add_parameter('dataset_size', default=200000, type=int)
     cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=512, type=int)
     cr.add_parameter('batch_size_validation', default=4096, type=int)
+    cr.add_parameter('group', default="Dataset-size", type=str)
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)
@@ -44,16 +44,16 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=240, type=int)
+    cr.add_parameter('n_epochs_flow', default=332, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
-    cr.add_parameter('nf_lr', default=1e-4, type=float)
+    cr.add_parameter('nf_lr', default=0.00004287, type=float)
     cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
-    cr.add_parameter('n_flow_blocks', default=2, type=int)
-    cr.add_parameter('n_layer_cond', default=4, type=int)
-    cr.add_parameter('hidden_size_cond', default=24, type=int)
-    cr.add_parameter('evaluation_every_step', action="store_true")
-    cr.add_parameter('spline_flow', action="store_true")
+    cr.add_parameter('n_flow_blocks', default=3, type=int)
+    cr.add_parameter('n_layer_cond', default=6, type=int)
+    cr.add_parameter('hidden_size_cond', default=20, type=int)
+    cr.add_parameter('evaluation_every_step', type=str, default="false")
+    cr.add_parameter('spline_flow', type=str, default="true")
     return cr
 
 
@@ -64,9 +64,7 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
         crb_list = []
         mse_regression_list = []
         parameter_list = []
-        # ml_mse_list = []
-        gcrb_opt_list = []
-        gcrb_back_list = []
+
         gcrb_flow_list = []
         if in_regression_network is not None:
             in_regression_network.eval()
@@ -79,43 +77,36 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
 
             crb_list.append(current_data_model.crb(theta).item())
 
-            fim = gcrb.repeat_compute_fim(optimal_model, theta.reshape([1]), batch_size=batch_size)
-            grcb_opt = torch.linalg.inv(fim)
-
             fim_back = gcrb.repeat_compute_fim(in_flow_model, theta.reshape([1]),
                                                batch_size=batch_size)
             grcb_flow = torch.linalg.inv(fim_back)
 
             parameter_list.append(theta.item())
-            gcrb_opt_list.append(grcb_opt.item())
+            # gcrb_opt_list.append(grcb_opt.item())
             gcrb_flow_list.append(grcb_flow.item())
-        gcrb_opt_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_opt_list)) / np.asarray(crb_list)).mean()
+        # gcrb_opt_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_opt_list)) / np.asarray(crb_list)).mean()
         gcrb_flow_dual_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).mean()
 
         gcrb_flow_dual_max_error = (
                 np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).max()
 
         if logging:
-            plt.plot(parameter_list, gcrb_opt_list, label="GCRB Optimal NF")
             plt.plot(parameter_list, gcrb_flow_list, label="GCRB NF")
             plt.plot(parameter_list, crb_list, label="CRB")
             plt.legend()
             plt.xlabel(r"$\theta$")
             plt.ylabel(r"$MSE(\theta)$")
             wandb.log({"CRB Compare": wandb.Image(plt),
-                       "gcrb_opt_nf_error_final": gcrb_opt_error,
                        "gcrb_nf_error_final": gcrb_flow_dual_error,
                        "gcrb_nf_max_error_final": gcrb_flow_dual_max_error,
                        })
         print("Time End For Model Check")
         print(time.time() - start_time)
-        return {"gcrb_opt_nf_error": gcrb_opt_error,
-                "gcrb_nf_error": gcrb_flow_dual_error,
+        return {"gcrb_nf_error": gcrb_flow_dual_error,
                 "gcrb_nf_max_error": gcrb_flow_dual_max_error,
                 }
 
     return check_example
-    # plt.show()
 
 
 def generate_flow_model(dim, n_flow_blocks, spline_flow, condition_embedding_size=1, n_layer_cond=4,
