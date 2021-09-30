@@ -53,7 +53,7 @@ def config():
     cr.add_parameter('n_layer_cond', default=6, type=int)
     cr.add_parameter('hidden_size_cond', default=20, type=int)
     cr.add_parameter('evaluation_every_step', type=str, default="false")
-    cr.add_parameter('spline_flow', type=str, default="true")
+    cr.add_parameter('spline_flow', type=str, default="false")
     return cr
 
 

@@ -8,17 +8,18 @@ import os
 class LinearOptimalFlow(nn.Module):
     def __init__(self, dim, parameter_vector_size, sigma_n):
         super().__init__()
-        a = torch.randn([dim, parameter_vector_size])
+        a = torch.randn([dim, parameter_vector_size], device=constants.DEVICE)
         a_norm = a / torch.sqrt(torch.pow(torch.abs(a), 2.0).sum())
         self.a = nn.Parameter(a_norm, requires_grad=False)
-        b = torch.randn([dim, dim])
+        b = torch.randn([dim, dim], device=constants.DEVICE)
         b = b / torch.norm(b)
         bbt = torch.matmul(b.transpose(dim0=0, dim1=1), b)
+        self.bbt = nn.Parameter(bbt, requires_grad=False)
         self.sigma_n = sigma_n
-        c_xx = torch.eye(dim) * (self.sigma_n ** 2) + bbt
+        c_xx = torch.eye(dim, device=constants.DEVICE) * self.sigma_n + self.bbt
         l_matrix = torch.linalg.cholesky(c_xx)
-        self.l_matrix = nn.Parameter(l_matrix, requires_grad=False)
-        self.l_matrix_inv = nn.Parameter(torch.linalg.inv(l_matrix), requires_grad=False)
+        self.l_matrix = l_matrix
+        self.l_matrix_inv = torch.linalg.inv(l_matrix)
         self.l_log_det = torch.log(torch.linalg.det(self.l_matrix))
         self.l_inv_log_det = torch.log(torch.linalg.det(self.l_matrix_inv))
         self.dim = dim
@@ -53,7 +54,7 @@ class LinearModel(BaseModel):
         torch.save(self.optimal_flow.state_dict(), os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def load_data_model(self, folder):
-        data=torch.load(os.path.join(folder, f"{self.model_name}_model.pt"))
+        data = torch.load(os.path.join(folder, f"{self.model_name}_model.pt"))
         self.optimal_flow.load_state_dict(data)
         pass
 
