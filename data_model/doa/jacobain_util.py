@@ -3,18 +3,6 @@ import torch
 import torch.autograd as autograd
 
 
-def jacobain_matrix2fim(jacobain_matrix, sigma):
-    sigma_scale = 1 / (sigma ** 2)
-    fim = sigma_scale * torch.matmul(jacobain_matrix.transpose(-1, -2), jacobain_matrix)
-    return fim
-
-
-def batch_fim(func, input_tensor, sigma=1.0):
-    jacobain_matrix = batch_func_jacobain(func, input_tensor)
-    fim = jacobain_matrix2fim(jacobain_matrix, sigma)
-    return fim
-
-
 def batch_func_jacobain(func, input_tensor):
     output_tensor = func(input_tensor)
     output_tensor = torch.reshape(output_tensor, [output_tensor.shape[0], -1])
