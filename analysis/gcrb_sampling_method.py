@@ -20,7 +20,7 @@ def get_gcrb_bounds(in_optimal_flow, in_theta, in_batch_size):
     gfim_res_back = gcrb.compute_fim_backward(in_optimal_flow, in_theta, in_batch_size)
     gcrb_v_back = torch.linalg.inv(gfim_res_back)
 
-    gfim_res = gcrb.compute_fim(in_optimal_flow, in_theta, in_batch_size)
+    gfim_res  = gcrb.compute_fim(in_optimal_flow, in_theta, in_batch_size)
     gcrb_v_dual = torch.linalg.inv(gfim_res)
 
     return gcrb_v_back, gcrb_v_dual

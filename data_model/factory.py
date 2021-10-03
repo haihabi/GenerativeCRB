@@ -8,6 +8,7 @@ from data_model.gaussian_variance import GaussianVarianceDataModel
 from enum import Enum
 
 
+# TODO:clean up
 class ModelType(Enum):
     Pow1Div3Gaussian = 0
     Linear = 1

@@ -6,7 +6,7 @@ from analysis_helpers import load_wandb_run, db
 
 if __name__ == '__main__':
     # run_name = "youthful-sweep-6"
-    run_name = "elated-sweep-23"
+    run_name = "decent-disco-350"
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
 

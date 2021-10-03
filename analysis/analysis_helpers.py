@@ -28,7 +28,7 @@ def load_wandb_run(run_name):
                 os.remove("flow_best.pt")
             run.file("flow_best.pt").download()
             config = run.config
-            model_flow = generate_flow_model(config['dim'], config['n_flow_blocks'], False,
+            model_flow = generate_flow_model(config['dim'], config['n_flow_blocks'], config["spline_flow"],
                                              n_layer_cond=config["n_layer_cond"],
                                              hidden_size_cond=config["hidden_size_cond"])
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
