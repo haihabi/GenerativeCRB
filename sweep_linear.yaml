@@ -1,0 +1,25 @@
+program: main.py
+method: bayes
+metric:
+  name: gcrb_nf_max_error_final
+  goal: minimize
+parameters:
+  nf_lr:
+    min: 0.00001
+    max: 0.001
+  n_flow_blocks:
+    min: 2
+    max: 10
+  n_layer_cond:
+    min: 2
+    max: 6
+  hidden_size_cond:
+    min: 16
+    max: 32
+  n_epochs_flow:
+    min: 120
+    max: 480
+  model_type:
+    value: Linear
+  spline_flow:
+    value: false
