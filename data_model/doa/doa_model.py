@@ -8,14 +8,23 @@ from data_model.doa.doa_signal_generator import DOASignalGenerator, generate_ste
 
 
 class DOAModel(BaseModel):
-    def __init__(self, sensors_arrangement, m_sensor, k_samples, d_sensors, sigma_n):
-        super().__init__(2 * m_sensor * k_samples, -math.pi, math.pi)
+    def __init__(self, sensors_arrangement, m_sensor, n_sources, k_samples, d_sensors, sigma_n):
+        super().__init__(2 * m_sensor * k_samples, -math.pi, math.pi, input_dim=n_sources)
         self.sigma_n = sigma_n
+        self.d_sensors = d_sensors
+        self.m_sensor = m_sensor
+        self.n_sources = n_sources
+        self.k_samples = k_samples
+        self.sensors_arrangement = sensors_arrangement
         self.signal_generator = DOASignalGenerator(m_sensor, k_samples, sensors_arrangement, d_sensors)
 
     @property
     def name(self) -> str:
-        return f"{super().name}_{self.signal_generator.m_sensors}_{self.signal_generator.k_samples}_{self.sigma_n}"  # Append Sigma N to Name
+        return f"{super().name}_{self.signal_generator.m_sensors}_{self.k_samples}_{self.sensors_arrangement.name}_{self.d_sensors}_{self.n_sources}_{self.sigma_n}"
+
+    @property
+    def model_name(self) -> str:
+        return f"{type(self).__name__}_{self.signal_generator.m_sensors}_{self.sensors_arrangement.name}_{self.d_sensors}"
 
     def _get_optimal_model(self):
         return None

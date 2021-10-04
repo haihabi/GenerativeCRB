@@ -9,10 +9,11 @@ from torch.distributions import MultivariateNormal
 
 
 class BaseModel(object):
-    def __init__(self, dim: int, theta_min: float, theta_max: float):
+    def __init__(self, dim: int, theta_min: float, theta_max: float, input_dim=1):
         self.theta_min = theta_min
         self.theta_max = theta_max
         self.dim = dim
+        self.input_dim = input_dim
 
     @property
     def parameter_vector_length(self):
@@ -26,12 +27,12 @@ class BaseModel(object):
     def model_name(self) -> str:
         return f"{type(self).__name__}_{self.dim}"
 
-    def model_exist(self,folder):
+    def model_exist(self, folder):
         return os.path.isfile(os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def parameter_range(self, n_steps):
-        return self.theta_min*0.9 + 0.9*(self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,
-                                                                                   device=constants.DEVICE)
+        return self.theta_min * 0.9 + 0.9 * (self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,
+                                                                                               device=constants.DEVICE)
 
     def build_dataset(self, dataset_size):
         print("Start Dataset Generation")
