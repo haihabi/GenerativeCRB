@@ -21,6 +21,7 @@ def config():
     cr.add_parameter('dataset_size', default=200000, type=int)
     cr.add_parameter('val_dataset_size', default=20000, type=int)
     cr.add_parameter('batch_size', default=512, type=int)
+    cr.add_parameter('n_validation_point', default=20, type=int)
     cr.add_parameter('batch_size_validation', default=4096, type=int)
     cr.add_parameter('group', default="", type=str)
     main_path = os.getcwd()
@@ -58,7 +59,7 @@ def config():
 
 
 def generate_gcrb_validation_function(current_data_model, in_regression_network, optimal_model, batch_size,
-                                      logging=False):
+                                      logging=False, n_validation_point=20):
     def check_example(in_flow_model):
         start_time = time.time()
         crb_list = []
@@ -68,7 +69,7 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
         gcrb_flow_list = []
         if in_regression_network is not None:
             in_regression_network.eval()
-        for theta in current_data_model.parameter_range(20):
+        for theta in current_data_model.parameter_range(n_validation_point):
 
             if in_regression_network is not None:
                 x = current_data_model.generate_data(512, theta)
@@ -230,5 +231,5 @@ if __name__ == '__main__':
     torch.save(flow_model.state_dict(), os.path.join(run_log_dir, "flow_last.pt"))
 
     check_final = generate_gcrb_validation_function(dm, None, model_opt, run_parameters.batch_size_validation,
-                                                    logging=True)
+                                                    logging=True, n_validation_point=run_parameters.n_validation_point)
     check_final(best_flow_model)  # Check Best Flow

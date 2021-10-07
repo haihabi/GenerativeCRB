@@ -1,0 +1,1 @@
+tsp python main.py --model_type Frequency --dataset_size 200000 --n_layer_cond 4 --nf_lr 0.0009683 --dim 10 --hidden_size_cond 29 --n_epochs_flow 146 --n_flow_blocks 9
