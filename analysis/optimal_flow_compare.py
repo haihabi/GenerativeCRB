@@ -58,7 +58,7 @@ if __name__ == '__main__':
                     gcrb_matrix = torch.linalg.inv(fim)
                     gcrb_iter.append(gcrb_matrix.item())
                     if batch_size == 128:
-                        fim = gcrb.repeat_compute_fim(model_opt, theta.reshape([1]), batch_size=128)  # 2048
+                        fim = gcrb.adaptive_sampling_gfim(model_opt, theta.reshape([1]), batch_size=128)  # 2048
                         gcrb_matrix = torch.linalg.inv(fim)
                         gcrb_iter_adaptive.append(gcrb_matrix.item())
 

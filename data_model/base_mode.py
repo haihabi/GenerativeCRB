@@ -31,7 +31,7 @@ class BaseModel(object):
         return os.path.isfile(os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def parameter_range(self, n_steps):
-        return self.theta_min * 0.9 + 0.9 * (self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,
+        return self.theta_min +  (self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,
                                                                                                device=constants.DEVICE)
 
     def build_dataset(self, dataset_size):

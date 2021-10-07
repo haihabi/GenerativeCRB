@@ -33,7 +33,7 @@ def compute_fim(in_model, in_theta_tensor, batch_size=128):
     return compute_fim_tensor(in_model, in_theta_tensor, batch_size).mean(dim=0)
 
 
-def repeat_compute_fim(in_model, in_theta_tensor, batch_size=128, eps=0.01, p_min=0.1, n_max=1e7):
+def adaptive_sampling_gfim(in_model, in_theta_tensor, batch_size=128, eps=0.01, p_min=0.1, n_max=1e7):
     fim_list = []
     status = True
     iteration_step = 1
@@ -47,7 +47,7 @@ def repeat_compute_fim(in_model, in_theta_tensor, batch_size=128, eps=0.01, p_mi
 
         var_mean_ratio = fim_stack.var(dim=0).max() / (torch.pow(fim_stack.mean(dim=0).max(), 2.0) + 1e-6)
         n_est = int(torch.ceil(var_mean_ratio / (p_min * (eps ** 2))).item())
-        print(100 * fim_stack.shape[0]/n_est )
+        print(100 * fim_stack.shape[0] / n_est)
         if n_est > fim_stack.shape[0] and fim_stack.shape[0] < n_max:
             iteration_step = min(math.ceil((n_est - fim_stack.shape[0]) / batch_size), 1000)
         else:

@@ -23,10 +23,10 @@ if __name__ == '__main__':
 
         crb_list.append(dm.crb(theta).item())
 
-        fim = gcrb.repeat_compute_fim(model_opt, theta.reshape([1]), batch_size=512)  # 2048
+        fim = gcrb.adaptive_sampling_gfim(model_opt, theta.reshape([1]), batch_size=512)  # 2048
         grcb_opt = torch.linalg.inv(fim)
 
-        fim = gcrb.repeat_compute_fim(model, theta.reshape([1]), batch_size=512)  # 2048
+        fim = gcrb.adaptive_sampling_gfim(model, theta.reshape([1]), batch_size=512)  # 2048
         grcb = torch.linalg.inv(fim)
 
         parameter_list.append(config["sigma_n"])

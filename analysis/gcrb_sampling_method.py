@@ -57,8 +57,8 @@ if __name__ == '__main__':
                 # if j == 10:
                 for i in tqdm(range(n_iter)):
                     gcrb_v_back, gcrb_v_dual = get_gcrb_bounds(optimal_flow, theta, batch_size)
-                    fim_rep_mean, gcrb_rep_std = gcrb.repeat_compute_fim(optimal_flow, theta, batch_size=128,
-                                                                         iteration_step=int(batch_size / 64))
+                    fim_rep_mean, gcrb_rep_std = gcrb.adaptive_sampling_gfim(optimal_flow, theta, batch_size=128,
+                                                                             iteration_step=int(batch_size / 64))
                     gcrb_rep = torch.linalg.inv(fim_rep_mean)
                     error_back = torch.abs(gcrb_v_back - crb).mean().item()
                     error_dual = torch.abs(gcrb_v_dual - crb).mean().item()

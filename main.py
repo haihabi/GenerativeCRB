@@ -77,8 +77,8 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
 
             crb_list.append(current_data_model.crb(theta).item())
 
-            fim_back = gcrb.repeat_compute_fim(in_flow_model, theta.reshape([1]),
-                                               batch_size=batch_size)
+            fim_back = gcrb.adaptive_sampling_gfim(in_flow_model, theta.reshape([1]),
+                                                   batch_size=batch_size)
             grcb_flow = torch.linalg.inv(fim_back)
 
             parameter_list.append(theta.item())
@@ -128,7 +128,7 @@ def generate_flow_model(dim, n_flow_blocks, spline_flow, condition_embedding_siz
                               condition_vector_size=condition_embedding_size))
 
         flows.append(
-            nf.Invertible1x1Conv(dim=dim))
+            nf.InvertibleFullyConnected(dim=dim))
         if spline_flow and i != (n_flow_blocks - 1):
             flows.append(nf.NSF_CL(dim=dim, K=spline_k, B=spline_b))
 

@@ -38,7 +38,7 @@ class ConditionalAffineHalfFlow(nn.Module):
     - NICE only shifts
     """
 
-    def __init__(self, dim, parity, net_class=MLP, nh=24, scale=True, shift=True, condition_vector_size=1):
+    def __init__(self, dim, parity, net_class=MLP, nh=24, scale=True, shift=True, condition_vector_size=1, axis=1):
         super().__init__()
         self.dim = dim
         self.parity = parity

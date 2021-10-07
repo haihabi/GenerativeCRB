@@ -5,7 +5,8 @@ from data_model.pow_3_gaussian_variance import Pow3Gaussian
 from data_model.linear_example import LinearModel
 from data_model.mean_example import MeanModel
 from data_model.gaussian_variance import GaussianVarianceDataModel
-from data_model.doa import DOAModel
+from data_model.frequency_estimation_example import FrequencyModel
+# from data_model.doa import DOAModel
 from enum import Enum
 
 
@@ -14,6 +15,7 @@ class ModelType(Enum):
     Pow1Div3Gaussian = 0
     Linear = 1
     Mean = 4
+    Frequency = 6
     GaussianVariance = 2
     Pow3Gaussian = 3
     DOA = 5
@@ -35,7 +37,9 @@ def get_model(model_type, model_parameter_dict) -> BaseModel:
     elif model_type == ModelType.Linear:
         return LinearModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
                            model_parameter_dict[constants.THETA_MAX], model_parameter_dict[constants.SIGMA_N])
-    elif model_type == ModelType.DOA:
-        return DOAModel(sensors_arrangement, 16, 50, 0.1, model_parameter_dict[constants.SIGMA_N])
+    elif model_type == ModelType.F:
+        return FrequencyModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.SIGMA_N])
+    # elif model_type == ModelType.DOA:
+    # return DOAModel(sensors_arrangement, 16, 50, 0.1, model_parameter_dict[constants.SIGMA_N])
     else:
         raise NotImplemented

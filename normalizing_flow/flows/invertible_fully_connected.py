@@ -1,9 +1,10 @@
 import torch
 from torch import nn
 import constants
+from torch.nn import functional as F
 
 
-class Invertible1x1Conv(nn.Module):
+class BaseInvertible(nn.Module):
     """
     As introduced in Glow paper.
     """
@@ -25,6 +26,8 @@ class Invertible1x1Conv(nn.Module):
         W = self.P @ L @ (U + torch.diag(self.S))
         return W
 
+
+class InvertibleFullyConnected(BaseInvertible):
     def forward(self, x, cond=None):
         W = self._assemble_W()
         z = x @ W
@@ -35,5 +38,21 @@ class Invertible1x1Conv(nn.Module):
         W = self._assemble_W()
         W_inv = torch.inverse(W)
         x = z @ W_inv
+        log_det = -torch.sum(torch.log(torch.abs(self.S)))
+        return x, log_det
+
+
+class InvertibleConv2d(BaseInvertible):
+
+    def forward(self, x, cond=None):
+        W = self._assemble_W()
+        z = F.conv2d(x, W, None, 1, 0, 1, 1)
+        log_det = torch.sum(torch.log(torch.abs(self.S)))
+        return z, log_det
+
+    def backward(self, z, cond=None):
+        W = self._assemble_W()
+        W_inv = torch.inverse(W)
+        x = F.conv2d(z, W_inv, None, 1, 0, 1, 1)
         log_det = -torch.sum(torch.log(torch.abs(self.S)))
         return x, log_det

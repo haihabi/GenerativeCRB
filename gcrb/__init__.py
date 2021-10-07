@@ -1,1 +1,1 @@
-from gcrb.compuate_fim import compute_fim, compute_fim_backward,repeat_compute_fim,compute_fim_tensor
+from gcrb.compuate_fim import compute_fim, compute_fim_backward,adaptive_sampling_gfim,compute_fim_tensor
