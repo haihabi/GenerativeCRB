@@ -54,7 +54,7 @@ class LinearModel(BaseModel):
         torch.save(self.optimal_flow.state_dict(), os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def load_data_model(self, folder):
-        data = torch.load(os.path.join(folder, f"{self.model_name}_model.pt"))
+        data = torch.load(os.path.join(folder, f"{self.model_name}_model.pt"),map_location="cpu")
         self.optimal_flow.load_state_dict(data)
 
     def generate_data(self, n_samples, theta):

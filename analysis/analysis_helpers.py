@@ -27,6 +27,7 @@ def load_wandb_run(run_name):
             if os.path.isfile("flow_best.pt"):
                 os.remove("flow_best.pt")
             run.file("flow_best.pt").download()
+
             config = run.config
             model_flow = generate_flow_model(config['dim'], config['n_flow_blocks'], config["spline_flow"],
                                              n_layer_cond=config["n_layer_cond"],
@@ -34,6 +35,10 @@ def load_wandb_run(run_name):
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
             model_flow = model_flow.to(constants.DEVICE)
             dm = get_data_model(config)
+            if os.path.isfile(f"{dm.model_name}_model.pt"):
+                os.remove(f"{dm.model_name}_model.pt")
+            run.file(f"{dm.model_name}_model.pt").download()
+            dm.load_data_model("")
             return model_flow, dm, config
 
 

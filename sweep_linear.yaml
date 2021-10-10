@@ -19,6 +19,8 @@ parameters:
   n_epochs_flow:
     min: 120
     max: 480
+  sigma_n:
+    value: 0.001
   model_type:
     value: Linear
   spline_flow:
