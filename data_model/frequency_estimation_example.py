@@ -67,8 +67,8 @@ class FrequencyModel(BaseModel):
 if __name__ == '__main__':
     import gcrb
 
-    dm = FrequencyModel(10, 1.0)
-    theta_array = dm.parameter_range(1000)
+    dm = FrequencyModel(6, 1.0)
+    theta_array = dm.parameter_range(50)
     print(theta_array)
     model_opt = dm.get_optimal_model()
     crb_list = [dm.crb(theta) for theta in theta_array]

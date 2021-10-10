@@ -32,7 +32,7 @@ def config():
     # Model Config
     #############################################
     cr.add_parameter('model_type', default="Frequency", type=str, enum=data_model.ModelType)
-    cr.add_parameter('dim', default=16, type=int)
+    cr.add_parameter('dim', default=6, type=int)
     cr.add_parameter('theta_min', default=-10, type=float)
     cr.add_parameter('theta_max', default=10.0, type=float)
     cr.add_parameter('sigma_n', default=1.0, type=float)
