@@ -48,7 +48,7 @@ def config():
     #############################################
     cr.add_parameter('n_epochs_flow', default=240, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
-    cr.add_parameter('nf_lr', default=0.00001, type=float)
+    cr.add_parameter('nf_lr', default=0.0001, type=float)
     cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
     cr.add_parameter('n_flow_blocks', default=7, type=int)
@@ -143,6 +143,7 @@ def generate_flow_model(dim, n_flow_blocks, spline_flow, condition_embedding_siz
 def generate_model_parameter_dict(in_param) -> dict:
     return {constants.DIM: in_param.dim,
             constants.THETA_MIN: in_param.theta_min,
+            constants.THETA_DIM: in_param.theta_dim,
             constants.SIGMA_N: in_param.sigma_n,
             constants.THETA_MAX: in_param.theta_max}
 
