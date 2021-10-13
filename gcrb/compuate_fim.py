@@ -26,7 +26,7 @@ def compute_fim_tensor(in_model, in_theta_tensor, batch_size=128):
                                                 device=constants.DEVICE)
     nll_tensor = in_model.sample_nll(batch_size, cond=theta_tensor).reshape([-1, 1])
     j_matrix = jacobian_single(nll_tensor, theta_tensor)
-    return torch.matmul(j_matrix, j_matrix.transpose(dim0=1, dim1=2))
+    return torch.matmul(j_matrix.transpose(dim0=1, dim1=2),j_matrix)
 
 
 def compute_fim(in_model, in_theta_tensor, batch_size=128):

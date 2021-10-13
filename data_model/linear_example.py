@@ -38,8 +38,8 @@ class LinearOptimalFlow(nn.Module):
 
 
 class LinearModel(BaseModel):
-    def __init__(self, dim: int, theta_min: float, theta_max: float, sigma_n):
-        super().__init__(dim, theta_min, theta_max)
+    def __init__(self, dim: int, theta_dim, theta_min: float, theta_max: float, sigma_n):
+        super().__init__(dim, theta_min, theta_max, theta_dim=theta_dim)
         self.sigma_n = sigma_n
         self.optimal_flow = LinearOptimalFlow(self.dim, self.parameter_vector_length, self.sigma_n)
 
@@ -73,3 +73,24 @@ class LinearModel(BaseModel):
             torch.matmul(a.transpose(dim0=0, dim1=1), torch.linalg.inv(torch.matmul(l, l.transpose(dim0=0, dim1=1)))),
             a)
         return torch.linalg.inv(fim)
+
+
+if __name__ == '__main__':
+    import gcrb
+    import numpy as np
+
+    dm = LinearModel(10, 2, -10, 10, 0.1)
+    theta_array = dm.parameter_range(5)
+    model_opt = dm.get_optimal_model()
+    crb_list = [dm.crb(theta) for theta in theta_array]
+    gcrb_list = [torch.inverse(gcrb.adaptive_sampling_gfim(model_opt, theta.reshape([-1]))) for theta in theta_array]
+
+    theta_array = theta_array.cpu().detach().numpy()
+    crb_array = torch.stack(crb_list).cpu().detach().numpy()
+    gcrb_array = torch.stack(gcrb_list).cpu().detach().numpy()
+    from matplotlib import pyplot as plt
+
+    plt.plot(theta_array[:, 0], np.diagonal(crb_array, axis1=1, axis2=2).sum(axis=-1))
+    plt.plot(theta_array[:, 0], np.diagonal(gcrb_array, axis1=1, axis2=2).sum(axis=-1))
+    plt.show()
+    # print("a")

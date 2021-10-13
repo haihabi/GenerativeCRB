@@ -35,7 +35,8 @@ def get_model(model_type, model_parameter_dict) -> BaseModel:
         return MeanModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
                          model_parameter_dict[constants.THETA_MAX], model_parameter_dict[constants.SIGMA_N])
     elif model_type == ModelType.Linear:
-        return LinearModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
+        return LinearModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_DIM],
+                           model_parameter_dict[constants.THETA_MIN],
                            model_parameter_dict[constants.THETA_MAX], model_parameter_dict[constants.SIGMA_N])
     elif model_type == ModelType.Frequency:
         return FrequencyModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.SIGMA_N])

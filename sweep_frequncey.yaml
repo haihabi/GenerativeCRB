@@ -5,23 +5,23 @@ metric:
   goal: minimize
 parameters:
   nf_lr:
-    min: 0.00001
-    max: 0.001
+    value: 0.001
   n_flow_blocks:
-    min: 2
+    min: 1
     max: 10
   n_layer_cond:
-    min: 2
-    max: 10
+    min: 1
+    max: 14
   hidden_size_cond:
     min: 16
     max: 64
   n_epochs_flow:
-    min: 120
-    max: 480
+    value: 240
   model_type:
     value: Frequency
   spline_flow:
     value: false
   n_validation_point:
     value: 20
+  sigma_n:
+    value: 1.0

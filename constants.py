@@ -4,6 +4,7 @@ DEVICE = common.get_working_device()
 DIM = "dim"
 THETA_MIN = "theta_min"
 THETA_MAX = "theta_max"
+THETA_DIM = "theta_dim"
 SIGMA_N = "sigma_n"
 K_SAMPLES = "k_samples"
 M_SOURCES = "m_sources"

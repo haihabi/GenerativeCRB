@@ -8,38 +8,42 @@ import normalizing_flow as nf
 from torch.distributions import MultivariateNormal
 
 
+# import numpy as np
+
+
 class BaseModel(object):
-    def __init__(self, dim: int, theta_min: float, theta_max: float, input_dim=1):
-        self.theta_min = theta_min
-        self.theta_max = theta_max
+    def __init__(self, dim: int, theta_min: float, theta_max: float, theta_dim=1):
+        self.theta_min = theta_min * torch.ones([1, theta_dim], device=constants.DEVICE)
+        self.theta_max = theta_max * torch.ones([1, theta_dim], device=constants.DEVICE)
         self.dim = dim
-        self.input_dim = input_dim
+        self.theta_dim = theta_dim
 
     @property
     def parameter_vector_length(self):
-        return 1
+        return self.theta_dim
 
     @property
     def name(self) -> str:
-        return f"{type(self).__name__}_{self.dim}"
+        return f"{type(self).__name__}_{self.dim}_{self.theta_dim}"
 
     @property
     def model_name(self) -> str:
-        return f"{type(self).__name__}_{self.dim}"
+        return f"{type(self).__name__}_{self.dim}_{self.theta_dim}"
 
     def model_exist(self, folder):
         return os.path.isfile(os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def parameter_range(self, n_steps):
-        return self.theta_min +  (self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,
-                                                                                               device=constants.DEVICE)
+        return self.theta_min + (self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,
+                                                                                   device=constants.DEVICE).reshape([-1, 1])
 
     def build_dataset(self, dataset_size):
         print("Start Dataset Generation")
         data = []
         label = []
         for _ in tqdm(range(dataset_size)):
-            theta = self.theta_min + (self.theta_max - self.theta_min) * torch.rand([1, 1], device=constants.DEVICE)
+            theta = self.theta_min + (self.theta_max - self.theta_min) * torch.rand([1, self.parameter_vector_length],
+                                                                                    device=constants.DEVICE)
             signal = self.generate_data(1, theta)
 
             data.append(signal.detach().cpu().numpy().flatten())
