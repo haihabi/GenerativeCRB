@@ -77,24 +77,27 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
                 theta_hat = in_regression_network(x)
                 mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
 
-            crb_list.append(current_data_model.crb(theta).item())
+            crb_list.append(current_data_model.crb(theta).detach().cpu().numpy())
 
-            fim_back = gcrb.adaptive_sampling_gfim(in_flow_model, theta.reshape([1]),
+            fim_back = gcrb.adaptive_sampling_gfim(in_flow_model, theta.reshape([-1]),
                                                    batch_size=batch_size)
             grcb_flow = torch.linalg.inv(fim_back)
 
-            parameter_list.append(theta.item())
-            # gcrb_opt_list.append(grcb_opt.item())
-            gcrb_flow_list.append(grcb_flow.item())
-        # gcrb_opt_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_opt_list)) / np.asarray(crb_list)).mean()
-        gcrb_flow_dual_error = (np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).mean()
+            parameter_list.append(theta.detach().cpu().numpy())
+            gcrb_flow_list.append(grcb_flow.detach().cpu().numpy())
+
+        gcrb_flow_list = np.asarray(gcrb_flow_list)
+        crb_list = np.asarray(crb_list)
+        parameter_list = np.asarray(parameter_list)
+        gcrb_flow_dual_error = (
+                    np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(np.abs(crb_list))).mean()
 
         gcrb_flow_dual_max_error = (
                 np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).max()
 
         if logging:
-            plt.plot(parameter_list, gcrb_flow_list, label="GCRB NF")
-            plt.plot(parameter_list, crb_list, label="CRB")
+            plt.plot(parameter_list[:, 0], np.trace(gcrb_flow_list, axis1=1, axis2=2), label="GCRB NF")
+            plt.plot(parameter_list[:, 0], np.trace(crb_list, axis1=1, axis2=2), label="CRB")
             plt.legend()
             plt.xlabel(r"$\theta$")
             plt.ylabel(r"$MSE(\theta)$")
@@ -111,11 +114,12 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
     return check_example
 
 
-def generate_flow_model(dim, n_flow_blocks, spline_flow, condition_embedding_size=1, n_layer_cond=4,
+def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, n_layer_cond=4,
                         hidden_size_cond=24, spline_b=3,
                         spline_k=8):
     flows = []
     affine_coupling = False
+    condition_embedding_size = theta_dim
 
     def generate_nl():
         return nn.PReLU(init=1.0)
@@ -208,7 +212,8 @@ if __name__ == '__main__':
 
     model_opt = dm.get_optimal_model()
 
-    flow_model = generate_flow_model(run_parameters.dim, run_parameters.n_flow_blocks, run_parameters.spline_flow,
+    flow_model = generate_flow_model(run_parameters.dim, run_parameters.theta_dim, run_parameters.n_flow_blocks,
+                                     run_parameters.spline_flow,
                                      n_layer_cond=run_parameters.n_layer_cond,
                                      hidden_size_cond=run_parameters.hidden_size_cond
                                      )
@@ -217,8 +222,7 @@ if __name__ == '__main__':
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=run_parameters.nf_weight_decay,
                                                               grad_norm_clipping=run_parameters.grad_norm_clipping,
-                                                              enable_lr_scheduler=True,
-                                                              scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
+                                                              enable_lr_scheduler=False)
     check_training = generate_gcrb_validation_function(dm, None, model_opt, run_parameters.batch_size_validation,
                                                        logging=False)
 
