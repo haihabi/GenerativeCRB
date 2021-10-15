@@ -8,8 +8,9 @@ import numpy as np
 from tqdm import tqdm
 
 
-def generate_model_dict(in_dim):
+def generate_model_dict(in_dim, in_theta_dim):
     return {constants.DIM: in_dim,
+            constants.THETA_DIM: in_theta_dim,
             constants.THETA_MIN: 0.3,
             constants.THETA_MAX: 10,
             constants.SIGMA_N: 0.1,
@@ -20,71 +21,56 @@ def get_gcrb_bounds(in_optimal_flow, in_theta, in_batch_size):
     gfim_res_back = gcrb.compute_fim_backward(in_optimal_flow, in_theta, in_batch_size)
     gcrb_v_back = torch.linalg.inv(gfim_res_back)
 
-    gfim_res  = gcrb.compute_fim(in_optimal_flow, in_theta, in_batch_size)
+    gfim_res = gcrb.compute_fim(in_optimal_flow, in_theta, in_batch_size)
     gcrb_v_dual = torch.linalg.inv(gfim_res)
 
     return gcrb_v_back, gcrb_v_dual
 
 
 if __name__ == '__main__':
-    n_iter = 10
-    batch_size_array = [128, 1024, 4098, 8192, 16384]
-    dim_array = [16]
+    n_iter = 2000
+    batch_size = 4098
+    dim = 16
+    theta_dim = 2
     common.set_seed(0)
-    model_type = data_model.ModelType.Mean
+    theta_value = 0.2
+    model_type = data_model.ModelType.Linear
 
     results = []
-    results_iteration = []
-    for dim in dim_array:
 
-        m2r = data_model.get_model(model_type, generate_model_dict(dim))
-        optimal_flow = m2r.get_optimal_model()
-        theta_array = [0.2]
+    m2r = data_model.get_model(model_type, generate_model_dict(dim, theta_dim))
+    optimal_flow = m2r.get_optimal_model()
 
-        results_dim = []
-        results_dim_iteration = []
-        for batch_size in batch_size_array:
-            print(dim, batch_size)
-            results_theta = []
-            _results_iteration = []
-            for j, theta_value in enumerate(theta_array):
-                theta = theta_value * torch.ones([1])
-                # gcrb_v_back, gcrb_v_dual = get_gcrb_bounds(optimal_flow, theta, batch_size)
-                crb = m2r.crb(theta)
+    theta = theta_value * torch.ones([theta_dim])
+    fim = np.linalg.inv(m2r.crb(theta).cpu().detach().numpy())
+    _results_iteration = []
+    eps_list = [0.1, 0.05, 0.01, 0.005]
+    for i in tqdm(range(n_iter)):
+        res_eps = []
+        for eps in eps_list:
+            fim_rep_mean___ = gcrb.adaptive_sampling_gfim(optimal_flow, theta, batch_size=batch_size, eps=eps)
+            res_eps.append(fim_rep_mean___.cpu().detach().numpy())
 
-                # error_back = torch.abs(gcrb_v_back - crb).mean().item()
-                # error_dual = torch.abs(gcrb_v_dual - crb).mean().item()
-                # if j == 10:
-                for i in tqdm(range(n_iter)):
-                    gcrb_v_back, gcrb_v_dual = get_gcrb_bounds(optimal_flow, theta, batch_size)
-                    fim_rep_mean, gcrb_rep_std = gcrb.adaptive_sampling_gfim(optimal_flow, theta, batch_size=128,
-                                                                             iteration_step=int(batch_size / 64))
-                    gcrb_rep = torch.linalg.inv(fim_rep_mean)
-                    error_back = torch.abs(gcrb_v_back - crb).mean().item()
-                    error_dual = torch.abs(gcrb_v_dual - crb).mean().item()
-                    error_rep = torch.abs(gcrb_rep - crb).mean().item()
-                    _results_iteration.append([error_dual, error_back, error_rep])
+        _results_iteration.append(res_eps)
+    results_array = np.asarray(_results_iteration)
+    fim_size = results_array.shape[2:]
+    n_figures = np.prod(fim_size)
+    count_max = 0
+    for j in range(n_figures):
+        j_x = j % 2
+        j_y = int(j >= 2)
+        plt.subplot(fim_size[0], fim_size[1], j + 1)
+        count_max = 0
+        for i, eps in enumerate(eps_list):
+            count, bins = np.histogram(results_array[:, i, j_x, j_y], density=True, bins=20)
+            count_max = max(count_max, np.max(count))
+            plt.plot(bins[:-1], count, "--", label=r"GFIM with $\epsilon=$" + f"{eps}")
 
-                # results_theta.append([error_dual, error_back, error_rep])
-            # results_dim.append(results_theta)
-            results_dim_iteration.append(_results_iteration)
-        results.append(results_dim)
-        results_iteration.append(results_dim_iteration)
-    # print("a")
-    print("Finised Run Loop")
-    # results = np.asarray(results)
-    results_iteration = np.asarray(results_iteration)
-    # plt.subplot(1, 3, 1)
-    # plt.plot(theta_array, results[0, :, 0], label="Dual")
-    # plt.plot(theta_array, results[0, :, 1], label="Backward")
-    # plt.subplot(1, 3, 2)
-    plt.errorbar(batch_size_array, results_iteration.mean(axis=2)[0, :, 0], yerr=results_iteration.std(axis=2)[0, :, 0],
-                 label="Dual")
-    plt.errorbar(batch_size_array, results_iteration.mean(axis=2)[0, :, 1], yerr=results_iteration.std(axis=2)[0, :, 1],
-                 label="Backward")
-    plt.errorbar(batch_size_array, results_iteration.mean(axis=2)[0, :, 2], yerr=results_iteration.std(axis=2)[0, :, 2],
-                 label="Rep")
-    plt.legend()
-    plt.grid()
+        plt.plot([fim[j_x, j_y], fim[j_x, j_y]], [0, np.max(count_max)], label="Analytic FIM")
+        plt.ylabel("PDF")
+        plt.xlabel("GFIM Value")
+        plt.title(r"$\overline{\mathrm{GFIM}}$" + f"At {j_x}, {j_y}")
+        plt.grid()
+        plt.legend()
     plt.show()
-    # print("a")
+    print("a")
