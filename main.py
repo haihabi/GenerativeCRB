@@ -89,11 +89,10 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
         gcrb_flow_list = np.asarray(gcrb_flow_list)
         crb_list = np.asarray(crb_list)
         parameter_list = np.asarray(parameter_list)
-        gcrb_flow_dual_error = (
-                    np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(np.abs(crb_list))).mean()
+        relative_delta = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(np.abs(crb_list))
 
-        gcrb_flow_dual_max_error = (
-                np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).max()
+        gcrb_flow_dual_error = relative_delta.mean()
+        gcrb_flow_dual_max_error = relative_delta.max()
 
         if logging:
             plt.plot(parameter_list[:, 0], np.trace(gcrb_flow_list, axis1=1, axis2=2), label="GCRB NF")
