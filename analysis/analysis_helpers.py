@@ -11,6 +11,7 @@ def get_data_model(in_config):
     def generate_model_parameter_dict() -> dict:
         return {constants.DIM: in_config[constants.DIM],
                 constants.THETA_MIN: in_config[constants.THETA_MIN],
+                constants.THETA_DIM: in_config[constants.THETA_DIM],
                 constants.SIGMA_N: in_config[constants.SIGMA_N],
                 constants.THETA_MAX: in_config[constants.THETA_MAX]}
 
@@ -29,7 +30,8 @@ def load_wandb_run(run_name):
             run.file("flow_best.pt").download()
 
             config = run.config
-            model_flow = generate_flow_model(config['dim'], config['n_flow_blocks'], config["spline_flow"],
+            model_flow = generate_flow_model(config['dim'], config.get("theta_dim"), config['n_flow_blocks'],
+                                             config["spline_flow"],
                                              n_layer_cond=config["n_layer_cond"],
                                              hidden_size_cond=config["hidden_size_cond"])
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))

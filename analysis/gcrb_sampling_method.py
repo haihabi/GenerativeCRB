@@ -55,22 +55,23 @@ if __name__ == '__main__':
     results_array = np.asarray(_results_iteration)
     fim_size = results_array.shape[2:]
     n_figures = np.prod(fim_size)
+    # count_max = 0
+    # for j in range(n_figures):
+    # j_x = j % 2
+    # j_y = int(j >= 2)
+    # plt.subplot(fim_size[0], fim_size[1], j + 1)
     count_max = 0
-    for j in range(n_figures):
-        j_x = j % 2
-        j_y = int(j >= 2)
-        plt.subplot(fim_size[0], fim_size[1], j + 1)
-        count_max = 0
-        for i, eps in enumerate(eps_list):
-            count, bins = np.histogram(results_array[:, i, j_x, j_y], density=True, bins=20)
-            count_max = max(count_max, np.max(count))
-            plt.plot(bins[:-1], count, "--", label=r"GFIM with $\epsilon=$" + f"{eps}")
+    results_trace = np.diagonal(results_array, axis1=2, axis2=3).sum(axis=-1) / fim_size[0]
+    for i, eps in enumerate(eps_list):
+        count, bins = np.histogram(results_trace[:, i], density=True, bins=20)
+        count_max = max(count_max, np.max(count))
+        plt.plot(bins[:-1], count, "--", label=r"$\epsilon=$" + f"{eps}")
 
-        plt.plot([fim[j_x, j_y], fim[j_x, j_y]], [0, np.max(count_max)], label="Analytic FIM")
-        plt.ylabel("PDF")
-        plt.xlabel("GFIM Value")
-        plt.title(r"$\overline{\mathrm{GFIM}}$" + f"At {j_x}, {j_y}")
-        plt.grid()
-        plt.legend()
+    plt.plot([np.trace(fim) / fim_size[0], np.trace(fim) / fim_size[0]], [0, np.max(count_max)], label="Analytic FIM")
+    plt.ylabel("PDF")
+    plt.xlabel(r"$\frac{1}{k}\mathrm{Tr}(\overline{\mathrm{GFIM}})$")
+    # plt.title(r"$\overline{\mathrm{GFIM}}$" + f"At {j_x}, {j_y}")
+    plt.grid()
+    plt.legend()
     plt.show()
     print("a")
