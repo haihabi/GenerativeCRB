@@ -1,12 +1,15 @@
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 50000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 100000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 200000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 300000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 400000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 500000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 600000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 700000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 700000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 800000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 900000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
-tsp python main.py --model_type Linear --sigma_n 0.1 --dataset_size 1000000 --n_layer_cond 6 --nf_lr 0.00004287 --dim 16 --theta_min -10 --hidden_size_cond 20 --n_epochs_flow 332 --n_flow_blocks 3 --spline_flow false
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 4800 --dataset_size 10000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 2400 --dataset_size 20000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 1600 --dataset_size 30000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 1200 --dataset_size 40000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 960 --dataset_size 50000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 800  --dataset_size 60000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 690 --dataset_size 70000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 600 --dataset_size 80000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 534 --dataset_size 90000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 480 --dataset_size 100000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 400  --dataset_size 120000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 343  --dataset_size 140000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 400 --dataset_size 160000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 270  --dataset_size 180000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 240  --dataset_size 200000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4

@@ -4,9 +4,6 @@ metric:
   name: gcrb_nf_max_error_final
   goal: minimize
 parameters:
-  nf_lr:
-    min: 0.00001
-    max: 0.001
   n_flow_blocks:
     min: 2
     max: 10
@@ -16,13 +13,12 @@ parameters:
   hidden_size_cond:
     min: 16
     max: 32
-  n_epochs_flow:
-    min: 120
-    max: 480
   model_type:
     value: Pow1Div3Gaussian
   dim:
     value: 2
+  theta_dim:
+    value: 1
   theta_min:
     value: 0.3
   spline_flow:

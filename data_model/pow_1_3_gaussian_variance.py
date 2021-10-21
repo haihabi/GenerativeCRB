@@ -44,5 +44,27 @@ class Pow1Div3Gaussian(BaseModel):
         return torch.pow(torch.mean(torch.pow(torch.abs(r), 6), dim=1), 1 / 6)
 
     def crb(self, theta):
-        theta = common.change2tensor(theta)
+        theta = common.change2tensor(theta).reshape([-1, 1, 1])
         return torch.pow(theta, 2.0) / (18 * self.dim)  # Check CRB in the case of dim>1
+
+
+if __name__ == '__main__':
+    import gcrb
+
+    dm = Pow1Div3Gaussian(6, 0.3, 10.)
+    theta_array = dm.parameter_range(5)
+    print(theta_array)
+    model_opt = dm.get_optimal_model()
+    crb_list = [dm.crb(theta) for theta in theta_array]
+    # gcrb_list = [gcrb.adaptive_sampling_gfim(model_opt, theta.reshape([1])) for theta in theta_array]
+
+    theta_array = theta_array.numpy()
+    crb_array = torch.stack(crb_list).flatten().numpy()
+    # gcrb_array = torch.stack(gcrb_list).flatten().numpy()
+    from matplotlib import pyplot as plt
+    from analysis.analysis_helpers import db
+
+    plt.plot(theta_array, crb_array)
+    # plt.plot(theta_array, 1/gcrb_array)
+    plt.show()
+    # print("a")

@@ -64,10 +64,12 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
     def check_example(in_flow_model):
         start_time = time.time()
         crb_list = []
+        fim_list = []
         mse_regression_list = []
         parameter_list = []
 
         gcrb_flow_list = []
+        gfim_flow_list = []
         if in_regression_network is not None:
             in_regression_network.eval()
         for theta in current_data_model.parameter_range(n_validation_point):
@@ -78,6 +80,7 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
                 mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
 
             crb_list.append(current_data_model.crb(theta).detach().cpu().numpy())
+            fim_list.append(np.linalg.inv(crb_list[-1]))
 
             fim_back = gcrb.adaptive_sampling_gfim(in_flow_model, theta.reshape([-1]),
                                                    batch_size=batch_size)
@@ -85,15 +88,18 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
 
             parameter_list.append(theta.detach().cpu().numpy())
             gcrb_flow_list.append(grcb_flow.detach().cpu().numpy())
+            gfim_flow_list.append(fim_back.detach().cpu().numpy())
 
         gcrb_flow_list = np.asarray(gcrb_flow_list)
         crb_list = np.asarray(crb_list)
         parameter_list = np.asarray(parameter_list)
-        gcrb_flow_dual_error = (
-                    np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(np.abs(crb_list))).mean()
+        relative_delta_crb = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(np.abs(crb_list))
+        relative_delta_fim = np.abs(np.asarray(fim_list) - np.asarray(gfim_flow_list)) / np.asarray(np.abs(fim_list))
 
-        gcrb_flow_dual_max_error = (
-                np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(crb_list)).max()
+        gcrb_flow_dual_error = relative_delta_crb.mean()
+        gfim_flow_dual_error = relative_delta_fim.mean()
+        gcrb_flow_dual_max_error = relative_delta_crb.max()
+        gfim_flow_dual_max_error = relative_delta_fim.max()
 
         if logging:
             plt.plot(parameter_list[:, 0], np.trace(gcrb_flow_list, axis1=1, axis2=2), label="GCRB NF")
@@ -104,11 +110,15 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
             wandb.log({"CRB Compare": wandb.Image(plt),
                        "gcrb_nf_error_final": gcrb_flow_dual_error,
                        "gcrb_nf_max_error_final": gcrb_flow_dual_max_error,
+                       "gfim_nf_max_error_final": gfim_flow_dual_max_error,
+                       "gfim_nf_mean_error_final": gfim_flow_dual_error,
                        })
         print("Time End For Model Check")
         print(time.time() - start_time)
         return {"gcrb_nf_error": gcrb_flow_dual_error,
                 "gcrb_nf_max_error": gcrb_flow_dual_max_error,
+                "gfim_nf_max_error": gfim_flow_dual_max_error,
+                "gfim_nf_mean_error": gfim_flow_dual_error,
                 }
 
     return check_example
