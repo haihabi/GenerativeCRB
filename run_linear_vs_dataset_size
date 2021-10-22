@@ -12,4 +12,4 @@
 # tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 343  --dataset_size 140000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
 # tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 400 --dataset_size 160000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
 # tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 270  --dataset_size 180000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
-tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 240  --dataset_size 200000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4
+# tsp python main.py --model_type Linear --sigma_n 0.1 --n_epochs_flow 240  --dataset_size 200000 --n_layer_cond 6 --dim 16 --theta_min -10 --hidden_size_cond 32 --n_flow_blocks 4

@@ -24,7 +24,7 @@ def load_wandb_run(run_name):
     runs = api.runs(f"HVH/GenerativeCRB")
     for run in runs:
         print(run.name, run.state)
-        if run.state == "finished" and run.name == run_name:
+        if run.name == run_name:
             if os.path.isfile("flow_best.pt"):
                 os.remove("flow_best.pt")
             run.file("flow_best.pt").download()

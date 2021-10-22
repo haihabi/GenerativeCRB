@@ -1,11 +1,13 @@
 import numpy as np
+import common
 from matplotlib import pyplot as plt
-from analysis_helpers import load_wandb_run, db
-from main import generate_gcrb_validation_function
+from analysis.analysis_helpers import load_wandb_run, db
+# from main import generate_gcrb_validation_function
 
 if __name__ == '__main__':
     # run_name = "youthful-sweep-6"
     run_name = "young-sweep-9"
+    run_name = "zany-pyramid-702"
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
     batch_size = 4096
@@ -14,7 +16,7 @@ if __name__ == '__main__':
     # gcrb_opt_list = []
     # gcrb_list = []
     # crb_list = []
-    check_func = generate_gcrb_validation_function(dm, None, batch_size, optimal_model=model_opt,
+    check_func = common.generate_gcrb_validation_function(dm, None, batch_size, optimal_model=model_opt,
                                                    return_full_results=True,
                                                    n_validation_point=20)
     data_dict = check_func(model)

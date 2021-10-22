@@ -16,7 +16,7 @@ parameters:
   model_type:
     value: Pow1Div3Gaussian
   dim:
-    value: 2
+    value: 16
   theta_dim:
     value: 1
   theta_min:
