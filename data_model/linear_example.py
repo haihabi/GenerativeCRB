@@ -16,13 +16,16 @@ class LinearOptimalFlow(nn.Module):
         bbt = torch.matmul(b.transpose(dim0=0, dim1=1), b)
         self.bbt = nn.Parameter(bbt, requires_grad=False)
         self.sigma_n = sigma_n
-        c_xx = torch.eye(dim, device=constants.DEVICE) * self.sigma_n + self.bbt
+        self.dim = dim
+        self.calculate_l_matrix()
+
+    def calculate_l_matrix(self):
+        c_xx = torch.eye(self.dim, device=constants.DEVICE) * self.sigma_n + self.bbt
         l_matrix = torch.linalg.cholesky(c_xx)
         self.l_matrix = l_matrix
         self.l_matrix_inv = torch.linalg.inv(l_matrix)
         self.l_log_det = torch.log(torch.linalg.det(self.l_matrix))
         self.l_inv_log_det = torch.log(torch.linalg.det(self.l_matrix_inv))
-        self.dim = dim
 
     def forward(self, x, cond=None):
         z = torch.matmul(self.l_matrix_inv,
@@ -54,8 +57,9 @@ class LinearModel(BaseModel):
         torch.save(self.optimal_flow.state_dict(), os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def load_data_model(self, folder):
-        data = torch.load(os.path.join(folder, f"{self.model_name}_model.pt"),map_location="cpu")
+        data = torch.load(os.path.join(folder, f"{self.model_name}_model.pt"), map_location="cpu")
         self.optimal_flow.load_state_dict(data)
+        self.optimal_flow.calculate_l_matrix()
 
     def generate_data(self, n_samples, theta):
         cond = torch.ones([n_samples, 1], device=constants.DEVICE) * theta

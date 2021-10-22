@@ -1,41 +1,32 @@
-import torch
-
-import gcrb
+import numpy as np
 from matplotlib import pyplot as plt
 from analysis_helpers import load_wandb_run, db
+from main import generate_gcrb_validation_function
 
 if __name__ == '__main__':
     # run_name = "youthful-sweep-6"
     run_name = "young-sweep-9"
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
-
-    mse_regression_list = []
-    parameter_list = []
-    gcrb_opt_list = []
-    gcrb_list = []
-    crb_list = []
-    for theta in dm.parameter_range(20):
-        crb_list.append(dm.crb(theta).cpu().detach().numpy())
-        fim = gcrb.adaptive_sampling_gfim(model_opt, theta.reshape([-1]), batch_size=512)  # 2048
-        grcb_opt = torch.linalg.inv(fim).cpu().detach().numpy()
-
-        fim = gcrb.adaptive_sampling_gfim(model, theta.reshape([-1]), batch_size=512)  # 2048
-        grcb = torch.linalg.inv(fim).cpu().detach().numpy()
-
-        parameter_list.append(theta.cpu().detach().numpy())
-        gcrb_opt_list.append(grcb_opt)
-        gcrb_list.append(grcb)
-        print(theta, grcb.item(), crb_list[-1])
-        print(100 * (gcrb_list[-1] - crb_list[-1]) / crb_list[-1])
-
-    # plt.plot(parameter_list, crb_list, label="CRB")
-    # plt.plot(parameter_list, gcrb_opt_list, label="NF Optimal")
-    # plt.plot(parameter_list, gcrb_list, label="NF Learned")
-    plt.plot(parameter_list, db(crb_list), label="CRB")
-    plt.plot(parameter_list, db(gcrb_opt_list), "--x", label="GCRB - Optimal NF")
-    plt.plot(parameter_list, db(gcrb_list), "--+", label="GCRB - Learned NF")
-    plt.ylabel("MSE[dB]")
+    batch_size = 4096
+    # mse_regression_list = []
+    # parameter_list = []
+    # gcrb_opt_list = []
+    # gcrb_list = []
+    # crb_list = []
+    check_func = generate_gcrb_validation_function(dm, None, batch_size, optimal_model=model_opt,
+                                                   return_full_results=True,
+                                                   n_validation_point=20)
+    data_dict = check_func(model)
+    # print(data_dict)
+    print((np.abs(data_dict["gcrb_flow"] - data_dict["crb"]) / np.abs(data_dict["crb"])).max() * 100)
+    parameter = data_dict["parameter"][:, 0]
+    plt.plot(parameter, np.diagonal(data_dict["crb"], axis1=1, axis2=2).sum(axis=-1), label="CRB")
+    plt.plot(parameter, np.diagonal(data_dict["gcrb_optimal_flow"], axis1=1, axis2=2).sum(axis=-1), "--x",
+             label="GCRB - Optimal NF")
+    plt.plot(parameter, np.diagonal(data_dict["gcrb_flow"], axis1=1, axis2=2).sum(axis=-1), "--+",
+             label="GCRB - Learned NF")
+    plt.ylabel("MSE")
     plt.xlabel(r"$\theta$")
     plt.grid()
     plt.legend()

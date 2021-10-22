@@ -59,8 +59,9 @@ def config():
     return cr
 
 
-def generate_gcrb_validation_function(current_data_model, in_regression_network, optimal_model, batch_size,
-                                      logging=False, n_validation_point=20):
+def generate_gcrb_validation_function(current_data_model, in_regression_network, batch_size,
+                                      logging=False, n_validation_point=20, optimal_model=None,
+                                      return_full_results=False):
     def check_example(in_flow_model):
         start_time = time.time()
         crb_list = []
@@ -70,6 +71,9 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
 
         gcrb_flow_list = []
         gfim_flow_list = []
+        gfim_optimal_flow_list = []
+        gcrb_optimal_flow_list = []
+        optimal_model_exists = optimal_model is not None
         if in_regression_network is not None:
             in_regression_network.eval()
         for theta in current_data_model.parameter_range(n_validation_point):
@@ -85,14 +89,34 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
             fim_back = gcrb.adaptive_sampling_gfim(in_flow_model, theta.reshape([-1]),
                                                    batch_size=batch_size)
             grcb_flow = torch.linalg.inv(fim_back)
+            if optimal_model_exists:
+                fim_optimal_back = gcrb.adaptive_sampling_gfim(optimal_model, theta.reshape([-1]),
+                                                               batch_size=batch_size)
+                grcb_optimal_flow = torch.linalg.inv(fim_optimal_back)
+                gcrb_optimal_flow_list.append(grcb_optimal_flow.detach().cpu().numpy())
+                gfim_optimal_flow_list.append(fim_optimal_back.detach().cpu().numpy())
 
             parameter_list.append(theta.detach().cpu().numpy())
             gcrb_flow_list.append(grcb_flow.detach().cpu().numpy())
             gfim_flow_list.append(fim_back.detach().cpu().numpy())
 
         gcrb_flow_list = np.asarray(gcrb_flow_list)
+        gfim_flow_list = np.asarray(gfim_flow_list)
         crb_list = np.asarray(crb_list)
         parameter_list = np.asarray(parameter_list)
+        if optimal_model_exists:
+            gcrb_optimal_flow_list = np.asarray(gcrb_optimal_flow_list)
+            gfim_optimal_flow_list = np.asarray(gfim_optimal_flow_list)
+
+        if return_full_results:
+            results_dict = {"gfim_flow": gfim_flow_list,
+                            "gcrb_flow": gcrb_flow_list,
+                            "crb": crb_list,
+                            "parameter": parameter_list}
+            if optimal_model_exists:
+                results_dict.update({"gfim_optimal_flow": gfim_optimal_flow_list,
+                                     "gcrb_optimal_flow": gcrb_optimal_flow_list})
+            return results_dict
         relative_delta_crb = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(np.abs(crb_list))
         relative_delta_fim = np.abs(np.asarray(fim_list) - np.asarray(gfim_flow_list)) / np.asarray(np.abs(fim_list))
 
@@ -233,7 +257,7 @@ if __name__ == '__main__':
                                                               weight_decay=run_parameters.nf_weight_decay,
                                                               grad_norm_clipping=run_parameters.grad_norm_clipping,
                                                               enable_lr_scheduler=False)
-    check_training = generate_gcrb_validation_function(dm, None, model_opt, run_parameters.batch_size_validation,
+    check_training = generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
                                                        logging=False)
 
     best_flow_model, flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader,
@@ -246,6 +270,6 @@ if __name__ == '__main__':
     torch.save(best_flow_model.state_dict(), os.path.join(run_log_dir, "flow_best.pt"))
     torch.save(flow_model.state_dict(), os.path.join(run_log_dir, "flow_last.pt"))
 
-    check_final = generate_gcrb_validation_function(dm, None, model_opt, run_parameters.batch_size_validation,
+    check_final = generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
                                                     logging=True, n_validation_point=run_parameters.n_validation_point)
     check_final(best_flow_model)  # Check Best Flow
