@@ -47,9 +47,9 @@ def config():
     cr.add_parameter('nf_lr', default=0.0001, type=float)
     cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
-    cr.add_parameter('n_flow_blocks', default=5, type=int)
-    cr.add_parameter('n_layer_cond', default=6, type=int)
-    cr.add_parameter('hidden_size_cond', default=32, type=int)
+    cr.add_parameter('n_flow_blocks', default=2, type=int)
+    cr.add_parameter('n_layer_cond', default=8, type=int)
+    cr.add_parameter('hidden_size_cond', default=16, type=int)
     cr.add_parameter('evaluation_every_step', type=str, default="false")
     cr.add_parameter('spline_flow', type=str, default="false")
     return cr

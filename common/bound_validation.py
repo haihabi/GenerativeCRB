@@ -70,6 +70,7 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
         gcrb_flow_dual_error = relative_delta_crb.mean()
         gfim_flow_dual_error = relative_delta_fim.mean()
         gcrb_flow_dual_max_error = relative_delta_crb.max()
+        gcrb_flow_trace_max_error = np.trace(relative_delta_crb, axis1=1, axis2=2).max()
         gfim_flow_dual_max_error = relative_delta_fim.max()
 
         if logging:
@@ -81,6 +82,7 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
             wandb.log({"CRB Compare": wandb.Image(plt),
                        "gcrb_nf_error_final": gcrb_flow_dual_error,
                        "gcrb_nf_max_error_final": gcrb_flow_dual_max_error,
+                       "gcrb_nf_trace_max_error_final": gcrb_flow_trace_max_error,
                        "gfim_nf_max_error_final": gfim_flow_dual_max_error,
                        "gfim_nf_mean_error_final": gfim_flow_dual_error,
                        })
