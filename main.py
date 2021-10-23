@@ -27,11 +27,11 @@ def config():
     #############################################
     # Model Config
     #############################################
-    cr.add_parameter('model_type', default="Linear", type=str, enum=data_model.ModelType)
-    cr.add_parameter('dim', default=16, type=int)
-    cr.add_parameter('theta_min', default=-10, type=float)
+    cr.add_parameter('model_type', default="Pow1Div3Gaussian", type=str, enum=data_model.ModelType)
+    cr.add_parameter('dim', default=2, type=int)
+    cr.add_parameter('theta_min', default=0.3, type=float)
     cr.add_parameter('theta_max', default=10.0, type=float)
-    cr.add_parameter('theta_dim', default=2, type=int)
+    cr.add_parameter('theta_dim', default=1, type=int)
     cr.add_parameter('sigma_n', default=0.1, type=float)
     ############################################
     # Regression Network
@@ -42,16 +42,16 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=240, type=int)
+    cr.add_parameter('n_epochs_flow', default=150, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
     cr.add_parameter('nf_lr', default=0.0001, type=float)
     cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
-    cr.add_parameter('n_flow_blocks', default=2, type=int)
-    cr.add_parameter('n_layer_cond', default=8, type=int)
-    cr.add_parameter('hidden_size_cond', default=16, type=int)
+    cr.add_parameter('n_flow_blocks', default=9, type=int)
+    cr.add_parameter('n_layer_cond', default=4, type=int)
+    cr.add_parameter('hidden_size_cond', default=29, type=int)
     cr.add_parameter('evaluation_every_step', type=str, default="false")
-    cr.add_parameter('spline_flow', type=str, default="false")
+    cr.add_parameter('spline_flow', type=str, default="true")
     return cr
 
 
@@ -163,7 +163,8 @@ if __name__ == '__main__':
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=run_parameters.nf_weight_decay,
                                                               grad_norm_clipping=run_parameters.grad_norm_clipping,
-                                                              enable_lr_scheduler=False)
+                                                              enable_lr_scheduler=True,
+                                                              scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
     check_training = common.generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
                                                               logging=False)
 
