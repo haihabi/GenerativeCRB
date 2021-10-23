@@ -12,9 +12,15 @@ parameters:
     max: 480
   n_flow_blocks:
     value: 2
+  theta_min:
+    value: -10.0
   n_layer_cond:
     min: 2
     max: 10
+  theta_dim:
+    value: 2
+  dim:
+    value: 16
   hidden_size_cond:
     value: 16
   model_type:
