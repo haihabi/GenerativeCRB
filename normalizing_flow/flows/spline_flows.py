@@ -44,18 +44,19 @@ def unconstrained_RQS(inputs, unnormalized_widths, unnormalized_heights,
 
     outputs[outside_interval_mask] = inputs[outside_interval_mask]
     logabsdet[outside_interval_mask] = 0
-
-    outputs[inside_intvl_mask], logabsdet[inside_intvl_mask] = RQS(
-        inputs=inputs[inside_intvl_mask],
-        unnormalized_widths=unnormalized_widths[inside_intvl_mask, :],
-        unnormalized_heights=unnormalized_heights[inside_intvl_mask, :],
-        unnormalized_derivatives=unnormalized_derivatives[inside_intvl_mask, :],
-        inverse=inverse,
-        left=-tail_bound, right=tail_bound, bottom=-tail_bound, top=tail_bound,
-        min_bin_width=min_bin_width,
-        min_bin_height=min_bin_height,
-        min_derivative=min_derivative
-    )
+    x = inputs[inside_intvl_mask]
+    if x.shape[0] > 0:  # Support the case where all point are out of bound
+        outputs[inside_intvl_mask], logabsdet[inside_intvl_mask] = RQS(
+            inputs=x,
+            unnormalized_widths=unnormalized_widths[inside_intvl_mask, :],
+            unnormalized_heights=unnormalized_heights[inside_intvl_mask, :],
+            unnormalized_derivatives=unnormalized_derivatives[inside_intvl_mask, :],
+            inverse=inverse,
+            left=-tail_bound, right=tail_bound, bottom=-tail_bound, top=tail_bound,
+            min_bin_width=min_bin_width,
+            min_bin_height=min_bin_height,
+            min_derivative=min_derivative
+        )
     return outputs, logabsdet
 
 

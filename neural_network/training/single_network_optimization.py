@@ -46,7 +46,7 @@ class SingleNetworkOptimization(object):
             grad_norm = torch.norm(
                 torch.stack(
                     [torch.norm(p.grad.detach(), self.norm_type).to(constants.DEVICE) for p in
-                     self.network.parameters()]),
+                     self.network.parameters() if p.grad is not None]),
                 self.norm_type)
         self.opt.step()
         return grad_norm
