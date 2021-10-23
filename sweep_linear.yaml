@@ -14,7 +14,7 @@ parameters:
     value: 2
   n_layer_cond:
     min: 2
-    max: 6
+    max: 10
   hidden_size_cond:
     value: 16
   model_type:
