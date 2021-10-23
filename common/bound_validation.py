@@ -66,11 +66,12 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
             return results_dict
         relative_delta_crb = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(np.abs(crb_list))
         relative_delta_fim = np.abs(np.asarray(fim_list) - np.asarray(gfim_flow_list)) / np.asarray(np.abs(fim_list))
+        relative_delta_crb_trace = np.abs(np.trace(np.asarray(crb_list),axis1=1,axis2=2) - np.asarray(np.trace(np.asarray(gcrb_flow_list),axis1=1,axis2=2))) / np.asarray(np.abs(np.trace(np.asarray(crb_list),axis1=1,axis2=2)))
 
         gcrb_flow_dual_error = relative_delta_crb.mean()
         gfim_flow_dual_error = relative_delta_fim.mean()
         gcrb_flow_dual_max_error = relative_delta_crb.max()
-        gcrb_flow_trace_max_error = np.trace(relative_delta_crb, axis1=1, axis2=2).max()
+        gcrb_flow_trace_max_error = relative_delta_crb_trace.max()
         gfim_flow_dual_max_error = relative_delta_fim.max()
 
         if logging:

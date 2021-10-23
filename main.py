@@ -44,7 +44,7 @@ def config():
     #############################################
     cr.add_parameter('n_epochs_flow', default=150, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
-    cr.add_parameter('nf_lr', default=0.0001, type=float)
+    cr.add_parameter('nf_lr', default=0.001, type=float)
     cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
     cr.add_parameter('n_flow_blocks', default=9, type=int)
