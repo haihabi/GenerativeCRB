@@ -27,11 +27,11 @@ def config():
     #############################################
     # Model Config
     #############################################
-    cr.add_parameter('model_type', default="Pow1Div3Gaussian", type=str, enum=data_model.ModelType)
-    cr.add_parameter('dim', default=2, type=int)
-    cr.add_parameter('theta_min', default=0.3, type=float)
-    cr.add_parameter('theta_max', default=10.0, type=float)
-    cr.add_parameter('theta_dim', default=1, type=int)
+    cr.add_parameter('model_type', default="Linear", type=str, enum=data_model.ModelType)
+    cr.add_parameter('dim', default=16, type=int)
+    cr.add_parameter('theta_min', default=-2, type=float)
+    cr.add_parameter('theta_max', default=2.0, type=float)
+    cr.add_parameter('theta_dim', default=2, type=int)
     cr.add_parameter('sigma_n', default=0.1, type=float)
     ############################################
     # Regression Network
@@ -42,16 +42,16 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=150, type=int)
+    cr.add_parameter('n_epochs_flow', default=250, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
     cr.add_parameter('nf_lr', default=0.001, type=float)
     cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
-    cr.add_parameter('n_flow_blocks', default=9, type=int)
+    cr.add_parameter('n_flow_blocks', default=2, type=int)
     cr.add_parameter('n_layer_cond', default=4, type=int)
-    cr.add_parameter('hidden_size_cond', default=29, type=int)
+    cr.add_parameter('hidden_size_cond', default=16, type=int)
     cr.add_parameter('evaluation_every_step', type=str, default="false")
-    cr.add_parameter('spline_flow', type=str, default="true")
+    cr.add_parameter('spline_flow', type=str, default="false")
     return cr
 
 
@@ -77,7 +77,7 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, n_layer_cond
         flows.append(
             nf.InvertibleFullyConnected(dim=dim))
         if spline_flow and i != (n_flow_blocks - 1):
-            flows.append(nf.NSF_CL(dim=dim, K=spline_k, B=spline_b))
+            flows.append(nf.PNSF(dim=dim, K=spline_k, B=spline_b))
 
     return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(dim, device=constants.DEVICE),
                                                       torch.eye(dim, device=constants.DEVICE)), flows,

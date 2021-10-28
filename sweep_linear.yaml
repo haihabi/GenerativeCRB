@@ -1,7 +1,7 @@
 program: main.py
 method: bayes
 metric:
-  name: gcrb_nf_trace_max_error_final
+  name: gfim_nf_max_error_final
   goal: minimize
 parameters:
   nf_lr:
@@ -11,19 +11,21 @@ parameters:
     min: 120
     max: 480
   n_flow_blocks:
-    value: 2
+    min: 2
+    max: 4
   theta_min:
-    value: -10.0
+    value: -2.0
   n_layer_cond:
     min: 2
     max: 10
-  theta_dim:
-    value: 2
   dim:
     value: 16
   hidden_size_cond:
-    value: 16
+    min: 8
+    max: 64
   model_type:
     value: Linear
   spline_flow:
     value: false
+  theta_dim:
+    value: 2
