@@ -163,7 +163,8 @@ if __name__ == '__main__':
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=run_parameters.nf_weight_decay,
                                                               grad_norm_clipping=run_parameters.grad_norm_clipping,
-                                                              enable_lr_scheduler=False)
+                                                              enable_lr_scheduler=True,
+                                                              scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
     check_training = common.generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
                                                               logging=False)
 
