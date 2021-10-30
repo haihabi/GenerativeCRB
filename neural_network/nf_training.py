@@ -1,6 +1,6 @@
 import constants
 import torch
-from normalizing_flow.nf_model import NormalizingFlowModel
+from normflowpy.nf_model import NormalizingFlowModel
 from neural_network.training.single_network_optimization import SingleNetworkOptimization
 import common
 from tqdm import tqdm

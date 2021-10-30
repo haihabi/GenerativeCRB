@@ -4,7 +4,7 @@ import common
 from tqdm import tqdm
 import constants
 import torch
-import normalizing_flow as nf
+import normflowpy as nf
 from torch.distributions import MultivariateNormal
 
 

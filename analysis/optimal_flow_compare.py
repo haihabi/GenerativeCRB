@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import data_model
-import normalizing_flow as nf
+import normflowpy as nf
 import gcrb
 from matplotlib import pyplot as plt
 from torch.distributions import MultivariateNormal

@@ -3,7 +3,7 @@ import common
 import data_model
 import neural_network
 
-import normalizing_flow as nf
+import normflowpy as nf
 from torch.distributions import MultivariateNormal
 from torch import nn
 import os
@@ -27,11 +27,11 @@ def config():
     #############################################
     # Model Config
     #############################################
-    cr.add_parameter('model_type', default="Linear", type=str, enum=data_model.ModelType)
-    cr.add_parameter('dim', default=16, type=int)
-    cr.add_parameter('theta_min', default=-10, type=float)
-    cr.add_parameter('theta_max', default=10.0, type=float)
-    cr.add_parameter('theta_dim', default=2, type=int)
+    cr.add_parameter('model_type', default="Pow1Div3Gaussian", type=str, enum=data_model.ModelType)
+    cr.add_parameter('dim', default=2, type=int)
+    cr.add_parameter('theta_min', default=1, type=float)
+    cr.add_parameter('theta_max', default=3.0, type=float)
+    cr.add_parameter('theta_dim', default=1, type=int)
     cr.add_parameter('sigma_n', default=0.1, type=float)
     ############################################
     # Regression Network
@@ -42,16 +42,16 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=240, type=int)
+    cr.add_parameter('n_epochs_flow', default=250, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
-    cr.add_parameter('nf_lr', default=0.0001, type=float)
+    cr.add_parameter('nf_lr', default=0.0005, type=float)
     cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
-    cr.add_parameter('n_flow_blocks', default=5, type=int)
-    cr.add_parameter('n_layer_cond', default=6, type=int)
+    cr.add_parameter('n_flow_blocks', default=9, type=int)
+    cr.add_parameter('n_layer_cond', default=4, type=int)
     cr.add_parameter('hidden_size_cond', default=32, type=int)
     cr.add_parameter('evaluation_every_step', type=str, default="false")
-    cr.add_parameter('spline_flow', type=str, default="false")
+    cr.add_parameter('spline_flow', type=str, default="true")
     return cr
 
 

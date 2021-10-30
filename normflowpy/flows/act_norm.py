@@ -1,5 +1,5 @@
 import torch
-from normalizing_flow.flows.affine import AffineConstantFlow
+from normflowpy.flows.affine import AffineConstantFlow
 from torch import nn
 
 

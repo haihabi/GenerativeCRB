@@ -3,7 +3,7 @@ import math
 import torch
 import torch.autograd as autograd
 import constants
-import normalizing_flow as nf
+import normflowpy as nf
 from tqdm import tqdm
 import numpy as np
 

@@ -1,7 +1,7 @@
 import unittest
 import torch
 import data_model as dm
-import normalizing_flow as nf
+import normflowpy as nf
 import constants
 
 

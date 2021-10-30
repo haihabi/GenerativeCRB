@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from normalizing_flow.base_nets import ARMLP
+from normflowpy.base_nets import ARMLP
 
 
 class MAF(nn.Module):

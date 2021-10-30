@@ -1,4 +1,4 @@
-from normalizing_flow.flows.maf import MAF
+from normflowpy.flows.maf import MAF
 
 
 class IAF(MAF):

@@ -3,10 +3,9 @@ Various helper network modules
 """
 
 import torch
-import torch.nn.functional as F
 from torch import nn
 
-from normalizing_flow.flows.made import MADE
+from normflowpy.flows.made import MADE
 
 
 class LeafParam(nn.Module):
@@ -80,11 +79,6 @@ class MLP(nn.Module):
             nn.LeakyReLU(0.2),
             nn.Linear(nh, nout),
         )
-        # torch.nn.init.xavier_normal_(self.net[0].weight)
-        # torch.nn.init.xavier_normal_(self.net[2].weight)
-        # torch.nn.init.xavier_normal_(self.net[4].weight)
-        # torch.nn.init.xavier_normal_(self.net[6].weight)
-
 
     def forward(self, x):
         return self.net(x)
