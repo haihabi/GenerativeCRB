@@ -68,16 +68,18 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, n_layer_cond
     for i in range(n_flow_blocks):
         if affine_coupling:
             flows.append(
-                nf.AffineHalfFlow(dim=dim, parity=i % 2, scale=True))
+                nf.flows.AffineCouplingFlowVector(dim=dim, parity=i % 2, scale=True))
         flows.append(
-            nf.AffineInjector(dim=dim, net_class=nf.generate_mlp_class(hidden_size_cond, n_layer=n_layer_cond,
-                                                                       non_linear_function=generate_nl), scale=True,
-                              condition_vector_size=condition_embedding_size))
+            nf.flows.AffineInjector(dim=dim,
+                                    net_class=nf.base_nets.generate_mlp_class(hidden_size_cond, n_layer=n_layer_cond,
+                                                                              non_linear_function=generate_nl),
+                                    scale=True,
+                                    condition_vector_size=condition_embedding_size))
 
         flows.append(
-            nf.InvertibleFullyConnected(dim=dim))
+            nf.flows.InvertibleFullyConnected(dim=dim))
         if spline_flow and i != (n_flow_blocks - 1):
-            flows.append(nf.NSF_CL(dim=dim, K=spline_k, B=spline_b))
+            flows.append(nf.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b))
 
     return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(dim, device=constants.DEVICE),
                                                       torch.eye(dim, device=constants.DEVICE)), flows,

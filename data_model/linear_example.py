@@ -3,9 +3,10 @@ import constants
 from torch import nn
 from data_model.base_mode import BaseModel
 import os
+import normflowpy as nfp
 
 
-class LinearOptimalFlow(nn.Module):
+class LinearOptimalFlow(nfp.ConditionalBaseFlowLayer):
     def __init__(self, dim, parameter_vector_size, sigma_n):
         super().__init__()
         a = torch.randn([dim, parameter_vector_size], device=constants.DEVICE)
