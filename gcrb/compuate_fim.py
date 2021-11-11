@@ -4,6 +4,43 @@ import torch
 import torch.autograd as autograd
 import constants
 import normflowpy as nf
+from torch import nn
+from tqdm import tqdm
+
+
+class FisherInformationMatrixCollector(nn.Module):
+    def __init__(self, m_parameters):
+        super().__init__()
+        self.fim_mean = nn.Parameter(torch.zeros(m_parameters, m_parameters), requires_grad=False)
+        self.fim_mean_p2 = nn.Parameter(torch.zeros(m_parameters, m_parameters), requires_grad=False)
+        self.i = 0
+        # self.fim_var2 = nn.Parameter(torch.zeros(m_parameters, m_parameters), requires_grad=False)
+
+    def append_fim(self, batch_fim):
+        with torch.no_grad():
+            batch_fim = batch_fim[torch.logical_not(torch.any(torch.any(batch_fim.isnan(), dim=2), dim=1)),
+                        :]  # Clear non values
+            if batch_fim.shape[0] > 0:
+                self.i += batch_fim.shape[0]
+                self.fim_mean += batch_fim.sum(dim=0)
+                self.fim_mean_p2 += torch.pow(batch_fim, 2.0).sum(dim=0)
+        return batch_fim.shape[0]
+
+    @property
+    def size(self):
+        return self.i
+
+    @property
+    def mean(self):
+        return self.fim_mean / self.i
+
+    @property
+    def power(self):
+        return self.fim_mean_p2 / self.i
+
+    @property
+    def varinace(self):
+        return self.power - torch.pow(self.mean, 2.0)
 
 
 def jacobian_single(out_gen, z, create_graph=False):
@@ -62,31 +99,36 @@ def adaptive_sampling_gfim(in_model, in_theta_tensor, batch_size=128, eps=0.01, 
 
 
 def adaptive_sampling_gfim_v2(sample_func, in_theta_tensor, batch_size=128, eps=0.01, p_min=0.1,
-                              n_max=1e7, diagonal=False):
-    fim_list = []
+                              n_max=1e7, diagonal=True):
+    # fim_list = []
     status = True
     iteration_step = 1
-    while status:
-        for _ in range(iteration_step):
-            fim_list.append(compute_fim_tensor_v2(sample_func, in_theta_tensor, batch_size=batch_size))
-        fim_stack = torch.cat(fim_list, dim=0)
+    fimc = None
+    with tqdm(total=n_max) as pbar:
 
-        fim_stack = fim_stack[torch.logical_not(torch.any(torch.any(fim_stack.isnan(), dim=2), dim=1)),
-                    :]  # Clear non values
+        while status:
+            for _ in range(iteration_step):
+                gfim = compute_fim_tensor_v2(sample_func, in_theta_tensor, batch_size=batch_size)
+                if fimc is None:
+                    fimc = FisherInformationMatrixCollector(m_parameters=gfim.shape[-1]).to(gfim.device)
 
-        var_mean_ratio = fim_stack.var(dim=0) / (torch.pow(fim_stack.mean(dim=0), 2.0) + 1e-6)
-        if diagonal:
-            var_mean_ratio = var_mean_ratio.diagonal().max()
-        else:
-            var_mean_ratio = var_mean_ratio.max()
-        n_est = int(torch.ceil(var_mean_ratio / (p_min * (eps ** 2))).item())
-        if n_est > fim_stack.shape[0] and fim_stack.shape[0] < n_max:
-            iteration_step = min(math.ceil((n_est - fim_stack.shape[0]) / batch_size), 1000)
-        else:
-            status = False
+                update_size = fimc.append_fim(gfim)
+                pbar.update(update_size)
 
-    print(f"Finished GFIM calculation after {fim_stack.shape[0]} Iteration")
-    return fim_stack.mean(dim=0)
+            var_mean_ratio = fimc.varinace / (torch.pow(fimc.mean, 2.0) + 1e-6)
+            if diagonal:
+                var_mean_ratio = var_mean_ratio.diagonal().max()
+            else:
+                var_mean_ratio = var_mean_ratio.max()
+            n_est = int(torch.ceil(var_mean_ratio / (p_min * (eps ** 2))).item())
+            print(n_est)
+            if n_est > fimc.size and fimc.size < n_max:
+                iteration_step = min(math.ceil((n_est - fimc.size) / batch_size), 1000)
+            else:
+                status = False
+
+        print(f"Finished GFIM calculation after {fimc.size} Iteration")
+    return fimc.mean
 
 
 def compute_fim_tensors_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, batch_size=128):

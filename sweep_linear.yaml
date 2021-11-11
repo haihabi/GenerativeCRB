@@ -11,18 +11,18 @@ parameters:
     min: 120
     max: 480
   n_flow_blocks:
-    min: 2
-    max: 4
+    min: 1
+    max: 6
   theta_min:
     value: -2.0
   n_layer_cond:
-    min: 2
+    min: 1
     max: 10
   dim:
-    value: 16
+    value: 8
   hidden_size_cond:
-    min: 8
-    max: 64
+    min: 4
+    max: 32
   model_type:
     value: Linear
   spline_flow:
