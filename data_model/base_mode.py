@@ -64,7 +64,7 @@ class BaseModel(object):
     def get_optimal_model(self):
         prior = MultivariateNormal(torch.zeros(self.dim, device=constants.DEVICE),
                                    torch.eye(self.dim, device=constants.DEVICE))
-        return nf.NormalizingFlowModel(prior, [self._get_optimal_model()])
+        return nf.NormalizingFlowModel(prior, [self._get_optimal_model()]).to(constants.DEVICE)
 
     def generate_data(self, n_samples, theta):
         raise NotImplemented

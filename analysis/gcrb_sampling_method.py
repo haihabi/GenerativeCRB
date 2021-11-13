@@ -41,7 +41,7 @@ if __name__ == '__main__':
     m2r = data_model.get_model(model_type, generate_model_dict(dim, theta_dim))
     optimal_flow = m2r.get_optimal_model()
 
-    theta = theta_value * torch.ones([theta_dim])
+    theta = theta_value * torch.ones([theta_dim],device=constants.DEVICE)
     fim = np.linalg.inv(m2r.crb(theta).cpu().detach().numpy())
     _results_iteration = []
     eps_list = [0.1, 0.05, 0.01, 0.005]
