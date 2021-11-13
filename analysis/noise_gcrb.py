@@ -54,7 +54,7 @@ if __name__ == '__main__':
     if illumination_code == "N":
         # u, v = 1418, 1979  # Two Color
         u, v = 1350, 1979  # Single Color
-        u, v = 1460, 1979  # Single Color (White)
+        # u, v = 1460, 1979  # Single Color (White)
     elif illumination_code == "L":
         u, v = 1375, 1979  # Two Color
     else:
@@ -74,7 +74,7 @@ if __name__ == '__main__':
         return flow.sample_nll(in_batch_size, cond=in_cond_vector).reshape([-1, 1])
 
 
-    gfim = gcrb.adaptive_sampling_gfim_v2(sample_function, theta_vector, batch_size=batch_size, n_max=32000)
+    gfim = gcrb.adaptive_sampling_gfim(sample_function, theta_vector, batch_size=batch_size, n_max=32000)
     psnr = 10 * torch.log(torch.linalg.inv(gfim).diagonal().mean()) / np.log(10)
     print(psnr)
     title_list = ["Red", "Green", "Green", "Blue"]

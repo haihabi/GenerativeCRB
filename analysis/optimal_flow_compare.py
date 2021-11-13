@@ -157,7 +157,7 @@ for theta in param_array:
     # for batch_size in batch_size_list:
     gfim_iter = []
     for i in tqdm(range(n_iter)):
-        gfim = gcrb.compute_fim_tensor(model_opt, theta.reshape([1]), batch_size=128)  # 2048
+        gfim = gcrb.compute_fim_tensor_model(model_opt, theta.reshape([1]), batch_size=128)  # 2048
         gfim_iter.append(gfim.numpy())
     parameter_results.append(np.concatenate(gfim_iter, axis=0))
 crb_results = np.asarray(crb_results).reshape([-1, 1])

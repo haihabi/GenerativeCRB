@@ -1,46 +1,7 @@
-import math
-
 import torch
 import torch.autograd as autograd
 import constants
 import normflowpy as nf
-from torch import nn
-from tqdm import tqdm
-
-
-class FisherInformationMatrixCollector(nn.Module):
-    def __init__(self, m_parameters):
-        super().__init__()
-        self.fim_mean = nn.Parameter(torch.zeros(m_parameters, m_parameters), requires_grad=False)
-        self.fim_mean_p2 = nn.Parameter(torch.zeros(m_parameters, m_parameters), requires_grad=False)
-        self.i = 0
-        # self.fim_var2 = nn.Parameter(torch.zeros(m_parameters, m_parameters), requires_grad=False)
-
-    def append_fim(self, batch_fim):
-        with torch.no_grad():
-            batch_fim = batch_fim[torch.logical_not(torch.any(torch.any(batch_fim.isnan(), dim=2), dim=1)),
-                        :]  # Clear non values
-            if batch_fim.shape[0] > 0:
-                self.i += batch_fim.shape[0]
-                self.fim_mean += batch_fim.sum(dim=0)
-                self.fim_mean_p2 += torch.pow(batch_fim, 2.0).sum(dim=0)
-        return batch_fim.shape[0]
-
-    @property
-    def size(self):
-        return self.i
-
-    @property
-    def mean(self):
-        return self.fim_mean / self.i
-
-    @property
-    def power(self):
-        return self.fim_mean_p2 / self.i
-
-    @property
-    def varinace(self):
-        return self.power - torch.pow(self.mean, 2.0)
 
 
 def jacobian_single(out_gen, z, create_graph=False):
@@ -56,118 +17,76 @@ def jacobian_single(out_gen, z, create_graph=False):
     return torch.stack(grad_list, dim=-1).transpose(-1, -2)
 
 
-def compute_fim_tensor(in_model, in_theta_tensor, batch_size=128):
+def compute_fim_tensor_model(in_model, in_theta_tensor, batch_size=128, score_vector=False):
     theta_tensor = in_theta_tensor * torch.ones([batch_size, in_theta_tensor.shape[0]], requires_grad=True,
                                                 device=constants.DEVICE)
-    nll_tensor = in_model.sample_nll(batch_size, cond=theta_tensor).reshape([-1, 1])
-    j_matrix = jacobian_single(nll_tensor, theta_tensor)
-    return torch.matmul(j_matrix.transpose(dim0=1, dim1=2), j_matrix)
+
+    def sample_func(in_batch_size,in_theta_tensor_hat):
+        return in_model.sample_nll(in_batch_size, cond=in_theta_tensor_hat).reshape([-1, 1])
+
+    return compute_fim_tensor_sample_function(sample_func, theta_tensor, batch_size, score_vector=score_vector)
 
 
-def compute_fim_tensor_v2(sample_func, in_theta_tensor, batch_size=128):
+def compute_fim_tensor_sample_function(sample_func, in_theta_tensor, batch_size=128, score_vector=False):
     nll_tensor = sample_func(batch_size, in_theta_tensor).reshape([-1, 1])
     j_matrix = jacobian_single(nll_tensor, in_theta_tensor)
+    if score_vector:  # Output also score vector
+        return torch.matmul(j_matrix.transpose(dim0=1, dim1=2), j_matrix), j_matrix
     return torch.matmul(j_matrix.transpose(dim0=1, dim1=2), j_matrix)
+
+
+def compute_fim_tensor(model, in_theta_tensor, batch_size=128, score_vector=False):
+    if isinstance(model, nf.NormalizingFlowModel):
+        return compute_fim_tensor_model(model, in_theta_tensor, batch_size=batch_size, score_vector=score_vector)
+    elif callable(model):
+        return compute_fim_tensor_sample_function(model, in_theta_tensor, batch_size=batch_size,
+                                                  score_vector=score_vector)
+    else:
+        raise Exception("")
 
 
 def compute_fim(in_model, in_theta_tensor, batch_size=128):
-    return compute_fim_tensor(in_model, in_theta_tensor, batch_size).mean(dim=0)
+    return compute_fim_tensor_model(in_model, in_theta_tensor, batch_size).mean(dim=0)
 
-
-def adaptive_sampling_gfim(in_model, in_theta_tensor, batch_size=128, eps=0.01, p_min=0.1, n_max=1e7):
-    fim_list = []
-    status = True
-    iteration_step = 1
-    while status:
-        for _ in range(iteration_step):
-            fim_list.append(compute_fim_tensor(in_model, in_theta_tensor, batch_size=batch_size))
-        fim_stack = torch.cat(fim_list, dim=0)
-
-        fim_stack = fim_stack[torch.logical_not(torch.any(torch.any(fim_stack.isnan(), dim=2), dim=1)),
-                    :]  # Clear non values
-
-        var_mean_ratio = fim_stack.var(dim=0) / (torch.pow(fim_stack.mean(dim=0), 2.0) + 1e-6)
-        var_mean_ratio = var_mean_ratio.max()
-        n_est = int(torch.ceil(var_mean_ratio / (p_min * (eps ** 2))).item())
-        if n_est > fim_stack.shape[0] and fim_stack.shape[0] < n_max:
-            iteration_step = min(math.ceil((n_est - fim_stack.shape[0]) / batch_size), 1000)
-        else:
-            status = False
-
-    print(f"Finished GFIM calculation after {fim_stack.shape[0]} Iteration")
-    return fim_stack.mean(dim=0)
-
-
-def adaptive_sampling_gfim_v2(sample_func, in_theta_tensor, batch_size=128, eps=0.01, p_min=0.1,
-                              n_max=1e7, diagonal=True):
-    # fim_list = []
-    status = True
-    iteration_step = 1
-    fimc = None
-    with tqdm(total=n_max) as pbar:
-
-        while status:
-            for _ in range(iteration_step):
-                gfim = compute_fim_tensor_v2(sample_func, in_theta_tensor, batch_size=batch_size)
-                if fimc is None:
-                    fimc = FisherInformationMatrixCollector(m_parameters=gfim.shape[-1]).to(gfim.device)
-
-                update_size = fimc.append_fim(gfim)
-                pbar.update(update_size)
-
-            var_mean_ratio = fimc.varinace / (torch.pow(fimc.mean, 2.0) + 1e-6)
-            if diagonal:
-                var_mean_ratio = var_mean_ratio.diagonal().max()
-            else:
-                var_mean_ratio = var_mean_ratio.max()
-            n_est = int(torch.ceil(var_mean_ratio / (p_min * (eps ** 2))).item())
-            print(n_est)
-            if n_est > fimc.size and fimc.size < n_max:
-                iteration_step = min(math.ceil((n_est - fimc.size) / batch_size), 1000)
-            else:
-                status = False
-
-        print(f"Finished GFIM calculation after {fimc.size} Iteration")
-    return fimc.mean
-
-
-def compute_fim_tensors_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, batch_size=128):
-    theta_tensor = in_theta_tensor * torch.ones([batch_size, in_theta_tensor.shape[0]], requires_grad=True,
-                                                device=constants.DEVICE)
-    z = in_model.prior.sample((batch_size,))
-    z.requires_grad_()
-    gamma = in_model.backward(z, theta_tensor)[0][-1]
-    g_theta_matrix = jacobian_single(gamma, theta_tensor)
-    j_g_matrix = jacobian_single(gamma, z, create_graph=True)
-
-    j_gamma_z_theta_matrix = jacobian_single(j_g_matrix.reshape([batch_size, -1]), theta_tensor)
-    j_gamma_z_theta_matrix = j_gamma_z_theta_matrix.reshape(
-        [batch_size, *list(j_g_matrix.shape[1:]), theta_tensor.shape[1]])
-
-    j_gamma_z_z_matrix = jacobian_single(j_g_matrix.reshape([batch_size, -1]), z)
-    j_gamma_z_z_matrix = j_gamma_z_z_matrix.reshape([batch_size, *list(j_g_matrix.shape[1:]), z.shape[1]])
-
-    j_g_matrix_inv = torch.linalg.inv(j_g_matrix)
-    term1 = torch.matmul(
-        torch.matmul(g_theta_matrix.transpose(dim0=1, dim1=2), j_g_matrix_inv.transpose(dim0=1, dim1=2)),
-        z.unsqueeze(dim=-1)).squeeze(dim=-1)
-
-    j_gamma_z_theta_matrix_reorder = j_gamma_z_theta_matrix.permute([0, 3, 1, 2])
-    term2 = torch.matmul(j_g_matrix_inv.unsqueeze(dim=1), j_gamma_z_theta_matrix_reorder).diagonal(dim1=2, dim2=3).sum(
-        dim=-1)
-
-    term3 = -torch.matmul(j_gamma_z_z_matrix.unsqueeze(dim=-2),
-                          torch.matmul(j_g_matrix_inv, g_theta_matrix).unsqueeze(dim=1).unsqueeze(dim=1)).squeeze(
-        dim=-1)
-    term3 = torch.matmul(j_g_matrix_inv.unsqueeze(dim=1), term3.permute([0, -1, 1, 2])).diagonal(dim1=2, dim2=3).sum(
-        dim=-1)
-    term_total = -term1 + term2 + term3
-
-    term_total = term_total.unsqueeze(dim=-1)
-    fim = torch.matmul(term_total.transpose(dim0=1, dim1=2), term_total)
-
-    return fim
-
-
-def compute_fim_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, batch_size=128):
-    return compute_fim_tensors_backward(in_model, in_theta_tensor, batch_size).mean(dim=0)
+#
+#
+# def compute_fim_tensors_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, batch_size=128):
+#     theta_tensor = in_theta_tensor * torch.ones([batch_size, in_theta_tensor.shape[0]], requires_grad=True,
+#                                                 device=constants.DEVICE)
+#     z = in_model.prior.sample((batch_size,))
+#     z.requires_grad_()
+#     gamma = in_model.backward(z, theta_tensor)[0][-1]
+#     g_theta_matrix = jacobian_single(gamma, theta_tensor)
+#     j_g_matrix = jacobian_single(gamma, z, create_graph=True)
+#
+#     j_gamma_z_theta_matrix = jacobian_single(j_g_matrix.reshape([batch_size, -1]), theta_tensor)
+#     j_gamma_z_theta_matrix = j_gamma_z_theta_matrix.reshape(
+#         [batch_size, *list(j_g_matrix.shape[1:]), theta_tensor.shape[1]])
+#
+#     j_gamma_z_z_matrix = jacobian_single(j_g_matrix.reshape([batch_size, -1]), z)
+#     j_gamma_z_z_matrix = j_gamma_z_z_matrix.reshape([batch_size, *list(j_g_matrix.shape[1:]), z.shape[1]])
+#
+#     j_g_matrix_inv = torch.linalg.inv(j_g_matrix)
+#     term1 = torch.matmul(
+#         torch.matmul(g_theta_matrix.transpose(dim0=1, dim1=2), j_g_matrix_inv.transpose(dim0=1, dim1=2)),
+#         z.unsqueeze(dim=-1)).squeeze(dim=-1)
+#
+#     j_gamma_z_theta_matrix_reorder = j_gamma_z_theta_matrix.permute([0, 3, 1, 2])
+#     term2 = torch.matmul(j_g_matrix_inv.unsqueeze(dim=1), j_gamma_z_theta_matrix_reorder).diagonal(dim1=2, dim2=3).sum(
+#         dim=-1)
+#
+#     term3 = -torch.matmul(j_gamma_z_z_matrix.unsqueeze(dim=-2),
+#                           torch.matmul(j_g_matrix_inv, g_theta_matrix).unsqueeze(dim=1).unsqueeze(dim=1)).squeeze(
+#         dim=-1)
+#     term3 = torch.matmul(j_g_matrix_inv.unsqueeze(dim=1), term3.permute([0, -1, 1, 2])).diagonal(dim1=2, dim2=3).sum(
+#         dim=-1)
+#     term_total = -term1 + term2 + term3
+#
+#     term_total = term_total.unsqueeze(dim=-1)
+#     fim = torch.matmul(term_total.transpose(dim0=1, dim1=2), term_total)
+#
+#     return fim
+#
+#
+# def compute_fim_backward(in_model: nf.NormalizingFlowModel, in_theta_tensor, batch_size=128):
+#     return compute_fim_tensors_backward(in_model, in_theta_tensor, batch_size).mean(dim=0)
