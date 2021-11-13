@@ -1,11 +1,11 @@
 import torch
 import constants
 import common
-from torch import nn
 from data_model.base_mode import BaseModel
+import normflowpy as nfp
 
 
-class Pow1Div3OptimalFlow(nn.Module):
+class Pow1Div3OptimalFlow(nfp.ConditionalBaseFlowLayer):
 
     def __init__(self, dim):
         super().__init__()

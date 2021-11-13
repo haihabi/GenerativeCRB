@@ -1,41 +1,37 @@
 import numpy as np
 import common
 from matplotlib import pyplot as plt
-from analysis.analysis_helpers import load_wandb_run, db
-
-# from main import generate_gcrb_validation_function
+from analysis.analysis_helpers import load_wandb_run
 
 if __name__ == '__main__':
-    # run_name = "youthful-sweep-6"
-    run_name = "young-sweep-9"
-    run_name = "zany-pyramid-702"
-    run_name = "crisp-galaxy-756"
-    run_name = "decent-disco-350"
-    run_name = "eager-water-792"
-    run_name = "quiet-sweep-61"
-    run_name = "smooth-sweep-11"
-    run_name = "expert-sweep-36"
+    run_name = "decent-disco-350"  # Scale  Model
+    # run_name = "toasty-sweep-79" # Linear Model
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
     batch_size = 4096
-    # mse_regression_list = []
-    # parameter_list = []
-    # gcrb_opt_list = []
-    # gcrb_list = []
-    # crb_list = []
+    eps = 0.01
     check_func = common.generate_gcrb_validation_function(dm, None, batch_size, optimal_model=model_opt,
                                                           return_full_results=True,
-                                                          n_validation_point=20)
+                                                          n_validation_point=20, eps=eps)
     data_dict = check_func(model)
-    # print(data_dict)
-    print((np.abs(data_dict["gcrb_flow"] - data_dict["crb"]) / np.abs(data_dict["crb"])).max() * 100)
+    ene_trained = common.gcrb_empirical_error(data_dict["gcrb_flow"], data_dict["crb"])
+    ene_optimal = common.gcrb_empirical_error(data_dict["gcrb_optimal_flow"], data_dict["crb"])
+
     parameter = data_dict["parameter"][:, 0]
+    plt.plot(parameter, eps * np.ones(parameter.shape[0]), label=r"$\epsilon$")
+    plt.plot(parameter, ene_trained, "--+", label="GCRB - Learned NF")
+    plt.plot(parameter, ene_optimal, "--x", label="GCRB - Optimal NF")
+    plt.grid()
+    plt.legend()
+    plt.xlabel(r"$\theta_1$")
+    plt.ylabel(r"$\frac{||\overline{\mathrm{GCRB}}-\mathrm{CRB}||_2}{||\mathrm{CRB}||_2^2}$")
+    plt.show()
+
     plt.plot(parameter, np.diagonal(data_dict["crb"], axis1=1, axis2=2).mean(axis=-1), label="CRB")
     plt.plot(parameter, np.diagonal(data_dict["gcrb_optimal_flow"], axis1=1, axis2=2).mean(axis=-1), "--x",
              label="GCRB - Optimal NF")
     plt.plot(parameter, np.diagonal(data_dict["gcrb_flow"], axis1=1, axis2=2).mean(axis=-1), "--+",
              label="GCRB - Learned NF")
-    # plt.ylabel("MSE")
     plt.ylabel(r"$\frac{1}{k}\mathrm{Tr}(\overline{\mathrm{xCRB}})$")
     plt.xlabel(r"$\theta_1$")
     plt.grid()

@@ -13,7 +13,7 @@ def numric_stable_log_mean_exp(x):
 
 
 def adaptive_sampling_gfim(model, in_theta_tensor, batch_size=128, eps=0.01, p_min=0.1,
-                           n_max=1e7, iter_size=0.1):
+                           n_max=1e7, iter_size=0.05):
     status = True
     iteration_step = 1
     fim_collector = None
@@ -26,20 +26,18 @@ def adaptive_sampling_gfim(model, in_theta_tensor, batch_size=128, eps=0.01, p_m
                 if fim_collector is None:
                     fim_collector = FisherInformationMatrixCollector(m_parameters=gfim.shape[-1]).to(gfim.device)
 
-                update_size = fim_collector.append_fim(gfim)
-                fim_collector.append_score(s_vector)
+                update_size = fim_collector.append_fim(gfim, s_vector)
                 pbar.update(update_size)
 
-            e_norm = torch.cat(fim_collector.score_norm_list).mean()  # L2 norm of the score vector
+            e_norm = fim_collector.calculate_score_norm()  # L2 norm of the score vector
             u = -np.log(p_min)
             n_est = math.ceil((e_norm ** 2) * (u + 1) / (eps ** 2))
-            print(n_est)
-
+            pbar.set_postfix({'estimated_m_samples': n_est})
             if n_est > fim_collector.size and fim_collector.size < n_max:
                 iteration_step = min(math.ceil((n_est - fim_collector.size) / batch_size),
-                                     int(iter_size * (n_max - fim_collector.size) / batch_size))
+                                     int(iter_size * n_max / batch_size))
             else:
                 status = False
 
         print(f"Finished GFIM calculation after {fim_collector.size} Iteration")
-    return fim_collector.mean
+    return fim_collector.calculate_final_fim()

@@ -6,9 +6,17 @@ from matplotlib import pyplot as plt
 import wandb
 
 
+def norm(x_array):
+    return np.sqrt(np.power(x_array, 2.0).sum(axis=(1, 2)))
+
+
+def gcrb_empirical_error(in_gcrb, in_crb):
+    return norm(in_gcrb - in_crb) / np.power(norm(in_crb), 2.0)
+
+
 def generate_gcrb_validation_function(current_data_model, in_regression_network, batch_size,
                                       logging=False, n_validation_point=20, optimal_model=None,
-                                      return_full_results=False):
+                                      return_full_results=False, eps=0.01):
     def check_example(in_flow_model):
         start_time = time.time()
         crb_list = []
@@ -29,19 +37,18 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
                 x = current_data_model.generate_data(512, theta)
                 theta_hat = in_regression_network(x)
                 mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
-
-            crb_list.append(current_data_model.crb(theta).detach().cpu().numpy())
-            fim_list.append(np.linalg.inv(crb_list[-1]))
-
-            fim_back = gcrb.adaptive_sampling_gfim(in_flow_model, theta.reshape([-1]),
-                                                   batch_size=batch_size)
-            grcb_flow = torch.linalg.inv(fim_back)
             if optimal_model_exists:
                 fim_optimal_back = gcrb.adaptive_sampling_gfim(optimal_model, theta.reshape([-1]),
                                                                batch_size=batch_size)
                 grcb_optimal_flow = torch.linalg.inv(fim_optimal_back)
                 gcrb_optimal_flow_list.append(grcb_optimal_flow.detach().cpu().numpy())
                 gfim_optimal_flow_list.append(fim_optimal_back.detach().cpu().numpy())
+            crb_list.append(current_data_model.crb(theta).detach().cpu().numpy())
+            fim_list.append(np.linalg.inv(crb_list[-1]))
+
+            fim_back = gcrb.adaptive_sampling_gfim(in_flow_model, theta.reshape([-1]),
+                                                   batch_size=batch_size, eps=eps)
+            grcb_flow = torch.linalg.inv(fim_back)
 
             parameter_list.append(theta.detach().cpu().numpy())
             gcrb_flow_list.append(grcb_flow.detach().cpu().numpy())
@@ -66,13 +73,25 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
             return results_dict
         relative_delta_crb = np.abs(np.asarray(crb_list) - np.asarray(gcrb_flow_list)) / np.asarray(np.abs(crb_list))
         relative_delta_fim = np.abs(np.asarray(fim_list) - np.asarray(gfim_flow_list)) / np.asarray(np.abs(fim_list))
-        relative_delta_crb_trace = np.abs(np.diagonal(np.asarray(crb_list), axis1=1, axis2=2).mean(axis=-1) - np.diagonal(np.asarray(gcrb_flow_list),axis1=1, axis2=2).mean(axis=-1)) / np.abs(np.diagonal(np.asarray(crb_list), axis1=1, axis2=2).mean(axis=-1))
+        relative_delta_crb_trace = np.abs(
+            np.diagonal(np.asarray(crb_list), axis1=1, axis2=2).mean(axis=-1) - np.diagonal(np.asarray(gcrb_flow_list),
+                                                                                            axis1=1, axis2=2).mean(
+                axis=-1)) / np.abs(np.diagonal(np.asarray(crb_list), axis1=1, axis2=2).mean(axis=-1))
 
         gcrb_flow_dual_error = relative_delta_crb.mean()
         gfim_flow_dual_error = relative_delta_fim.mean()
         gcrb_flow_dual_max_error = relative_delta_crb.max()
         gcrb_flow_trace_max_error = relative_delta_crb_trace.max()
         gfim_flow_dual_max_error = relative_delta_fim.max()
+        ene = gcrb_empirical_error(np.asarray(gcrb_flow_list), np.asarray(crb_list))
+
+        error_dict = {"gcrb_nf_error": gcrb_flow_dual_error,
+                      "gcrb_nf_max_error": gcrb_flow_dual_max_error,
+                      "gcrb_nf_trace_max_error": gcrb_flow_trace_max_error,
+                      "gfim_nf_max_error": gfim_flow_dual_max_error,
+                      "gfim_nf_mean_error": gfim_flow_dual_error,
+                      "gcrb_norm_error_max": ene.max(),
+                      "gcrb_norm_error_mean": ene.mean()}
 
         if logging:
             plt.plot(parameter_list[:, 0], np.trace(gcrb_flow_list, axis1=1, axis2=2), label="GCRB NF")
@@ -80,19 +99,11 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
             plt.legend()
             plt.xlabel(r"$\theta$")
             plt.ylabel(r"$MSE(\theta)$")
-            wandb.log({"CRB Compare": wandb.Image(plt),
-                       "gcrb_nf_error_final": gcrb_flow_dual_error,
-                       "gcrb_nf_max_error_final": gcrb_flow_dual_max_error,
-                       "gcrb_nf_trace_max_error_final": gcrb_flow_trace_max_error,
-                       "gfim_nf_max_error_final": gfim_flow_dual_max_error,
-                       "gfim_nf_mean_error_final": gfim_flow_dual_error,
-                       })
+            error_dict_final = {k + "_final": v for k, v in error_dict.items()}
+            error_dict_final.update({"CRB Compare": wandb.Image(plt)})
+            wandb.log(error_dict_final)
         print("Time End For Model Check")
         print(time.time() - start_time)
-        return {"gcrb_nf_error": gcrb_flow_dual_error,
-                "gcrb_nf_max_error": gcrb_flow_dual_max_error,
-                "gfim_nf_max_error": gfim_flow_dual_max_error,
-                "gfim_nf_mean_error": gfim_flow_dual_error,
-                }
+        return error_dict
 
     return check_example
