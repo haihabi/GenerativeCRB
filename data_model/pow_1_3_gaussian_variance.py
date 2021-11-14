@@ -44,7 +44,7 @@ class Pow1Div3Gaussian(BaseModel):
         return torch.pow(torch.mean(torch.pow(torch.abs(r), 6), dim=1), 1 / 6)
 
     def crb(self, theta):
-        theta = common.change2tensor(theta).reshape([-1, 1, 1])
+        theta = common.change2tensor(theta).reshape([1, 1])
         return torch.pow(theta, 2.0) / (18 * self.dim)  # Check CRB in the case of dim>1
 
 

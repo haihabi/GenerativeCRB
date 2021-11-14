@@ -14,6 +14,7 @@ def numric_stable_log_mean_exp(x):
 
 def adaptive_sampling_gfim(model, in_theta_tensor, batch_size=128, eps=0.01, p_min=0.1,
                            n_max=1e7, iter_size=0.05):
+    u = -np.log(p_min)
     status = True
     iteration_step = 1
     fim_collector = None
@@ -30,8 +31,14 @@ def adaptive_sampling_gfim(model, in_theta_tensor, batch_size=128, eps=0.01, p_m
                 pbar.update(update_size)
 
             e_norm = fim_collector.calculate_score_norm()  # L2 norm of the score vector
-            u = -np.log(p_min)
+
+            conv_inv_half = torch.linalg.inv(
+                torch.linalg.cholesky(fim_collector.calculate_final_fim()))  # Calculating an estimation of Cov^{-0.5}
+
+            n_est_must = int(torch.ceil(
+                (1 + u) * torch.pow(torch.linalg.norm(conv_inv_half, ord=2), 4) * torch.pow(e_norm, 2)).item())
             n_est = math.ceil((e_norm ** 2) * (u + 1) / (eps ** 2))
+            n_est = max(n_est_must, n_est)
             pbar.set_postfix({'estimated_m_samples': n_est})
             if n_est > fim_collector.size and fim_collector.size < n_max:
                 iteration_step = min(math.ceil((n_est - fim_collector.size) / batch_size),
