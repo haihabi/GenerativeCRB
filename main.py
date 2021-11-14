@@ -3,13 +3,14 @@ import common
 import data_model
 import neural_network
 
-import normflowpy as nf
+import normflowpy as nfp
 from torch.distributions import MultivariateNormal
 from torch import nn
 import os
 import constants
 import pickle
 import wandb
+from neural_network.nf_training import normalizing_flow_training
 
 
 def config():
@@ -68,22 +69,22 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, n_layer_cond
     for i in range(n_flow_blocks):
         if affine_coupling:
             flows.append(
-                nf.flows.AffineCouplingFlowVector(dim=dim, parity=i % 2, scale=True))
+                nfp.flows.AffineCouplingFlowVector(dim=dim, parity=i % 2, scale=True))
         flows.append(
-            nf.flows.AffineInjector(dim=dim,
-                                    net_class=nf.base_nets.generate_mlp_class(hidden_size_cond, n_layer=n_layer_cond,
-                                                                              non_linear_function=generate_nl),
-                                    scale=True,
-                                    condition_vector_size=condition_embedding_size))
+            nfp.flows.AffineInjector(dim=dim,
+                                     net_class=nfp.base_nets.generate_mlp_class(hidden_size_cond, n_layer=n_layer_cond,
+                                                                                non_linear_function=generate_nl),
+                                     scale=True,
+                                     condition_vector_size=condition_embedding_size))
 
         flows.append(
-            nf.flows.InvertibleFullyConnected(dim=dim))
+            nfp.flows.InvertibleFullyConnected(dim=dim))
         if spline_flow and i != (n_flow_blocks - 1):
-            flows.append(nf.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b))
+            flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b))
 
-    return nf.NormalizingFlowModel(MultivariateNormal(torch.zeros(dim, device=constants.DEVICE),
-                                                      torch.eye(dim, device=constants.DEVICE)), flows,
-                                   condition_network=None).to(
+    return nfp.NormalizingFlowModel(MultivariateNormal(torch.zeros(dim, device=constants.DEVICE),
+                                                       torch.eye(dim, device=constants.DEVICE)), flows,
+                                    condition_network=None).to(
         constants.DEVICE)
 
 
@@ -170,10 +171,10 @@ if __name__ == '__main__':
     check_training = common.generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
                                                               logging=False)
 
-    best_flow_model, flow_model = nf.normalizing_flow_training(flow_model, training_dataset_loader,
-                                                               validation_dataset_loader,
-                                                               optimizer_flow,
-                                                               check_gcrb=check_training if run_parameters.evaluation_every_step else None)
+    best_flow_model, flow_model = normalizing_flow_training(flow_model, training_dataset_loader,
+                                                            validation_dataset_loader,
+                                                            optimizer_flow,
+                                                            check_gcrb=check_training if run_parameters.evaluation_every_step else None)
     # Save Flow to Weights and Bias
     torch.save(best_flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_best.pt"))
     torch.save(flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_last.pt"))
