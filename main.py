@@ -53,14 +53,14 @@ def config():
     cr.add_parameter('hidden_size_cond', default=32, type=int)
     cr.add_parameter('evaluation_every_step', type=str, default="false")
     cr.add_parameter('spline_flow', type=str, default="true")
+    cr.add_parameter('affine_coupling', type=str, default="false")
     return cr
 
 
-def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, n_layer_cond=4,
+def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow,affine_coupling, n_layer_cond=4,
                         hidden_size_cond=24, spline_b=3,
                         spline_k=8):
     flows = []
-    affine_coupling = False
     condition_embedding_size = theta_dim
 
     def generate_nl():
@@ -157,7 +157,7 @@ if __name__ == '__main__':
     model_opt = dm.get_optimal_model()
 
     flow_model = generate_flow_model(run_parameters.dim, run_parameters.theta_dim, run_parameters.n_flow_blocks,
-                                     run_parameters.spline_flow,
+                                     run_parameters.spline_flow,run_parameters.affine_coupling,
                                      n_layer_cond=run_parameters.n_layer_cond,
                                      hidden_size_cond=run_parameters.hidden_size_cond
                                      )

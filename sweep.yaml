@@ -30,4 +30,6 @@ parameters:
   theta_max:
     value: 6
   spline_flow:
+    value: false
+  affine_coupling:
     value: true

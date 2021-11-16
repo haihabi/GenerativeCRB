@@ -11,7 +11,7 @@ def norm(x_array):
 
 
 def gcrb_empirical_error(in_gcrb, in_crb):
-    return norm(in_gcrb - in_crb) / np.power(norm(in_crb), 2.0)
+    return norm(in_gcrb - in_crb) / norm(in_crb)
 
 
 def generate_gcrb_validation_function(current_data_model, in_regression_network, batch_size,

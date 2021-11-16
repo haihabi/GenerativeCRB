@@ -31,7 +31,7 @@ def load_wandb_run(run_name):
 
             config = run.config
             model_flow = generate_flow_model(config['dim'], config.get("theta_dim",1), config['n_flow_blocks'],
-                                             config["spline_flow"],
+                                             config["spline_flow"],False,
                                              n_layer_cond=config["n_layer_cond"],
                                              hidden_size_cond=config["hidden_size_cond"])
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
