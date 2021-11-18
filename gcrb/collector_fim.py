@@ -35,7 +35,7 @@ class FisherInformationMatrixCollector(nn.Module):
         return self.mean - mean_correction
 
     def calculate_score_norm(self):
-        return torch.cat(self.score_norm_list).mean() - torch.pow(self.calculate_score_mean(), 2.0).sum()
+        return torch.sqrt(torch.cat(self.score_norm_list).mean() - torch.pow(self.calculate_score_mean(), 2.0).sum())
 
     @property
     def size(self):

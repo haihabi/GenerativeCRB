@@ -32,7 +32,7 @@ def adaptive_sampling_gfim(model, in_theta_tensor, batch_size=128, eps=0.01, p_m
 
             n_est_must = int(torch.ceil(
                 (1 + u) * torch.pow(torch.linalg.norm(conv_inv_half, ord=2), 4) * torch.pow(e_norm, 2)).item())
-            n_est = math.ceil(fim_inv_norm * (e_norm ** 2) * (u + 1) / (eps ** 2))
+            n_est = math.ceil((fim_inv_norm ** 2) * (e_norm ** 4) * (u + 1) / (eps ** 2))
             n_est = max(n_est_must, n_est)
             pbar.set_postfix({'estimated_m_samples': n_est})
             if n_est > fim_collector.size and fim_collector.size < n_max:

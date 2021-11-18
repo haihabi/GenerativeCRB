@@ -6,6 +6,7 @@ from analysis.analysis_helpers import load_wandb_run
 if __name__ == '__main__':
     # run_name = "decent-disco-350"  # Scale  Model
     run_name = "toasty-sweep-79" # Linear Model
+    run_name = "sunny-brook-1290" # Linear Model
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
     batch_size = 4096
@@ -16,15 +17,15 @@ if __name__ == '__main__':
     data_dict = check_func(model)
     ene_trained = common.gcrb_empirical_error(data_dict["gcrb_flow"], data_dict["crb"])
     ene_optimal = common.gcrb_empirical_error(data_dict["gcrb_optimal_flow"], data_dict["crb"])
-
+    print(np.max(ene_trained),np.max(ene_optimal))
     parameter = data_dict["parameter"][:, 0]
     plt.plot(parameter, eps * np.ones(parameter.shape[0]), label=r"$\epsilon$")
-    plt.plot(parameter, ene_trained, "--+", label="GCRB - Learned NF")
     plt.plot(parameter, ene_optimal, "--x", label="GCRB - Optimal NF")
+    plt.plot(parameter, ene_trained, "--+", label="GCRB - Learned NF")
     plt.grid()
     plt.legend()
     plt.xlabel(r"$\theta_1$")
-    plt.ylabel(r"$\frac{||\overline{\mathrm{GCRB}}-\mathrm{CRB}||_2}{||\mathrm{CRB}||_2^2}$")
+    plt.ylabel(r"$\frac{||\overline{\mathrm{GCRB}}-\mathrm{CRB}||_2}{||\mathrm{CRB}||_2}$")
     plt.show()
 
     plt.plot(parameter, np.diagonal(data_dict["crb"], axis1=1, axis2=2).mean(axis=-1), label="CRB")
