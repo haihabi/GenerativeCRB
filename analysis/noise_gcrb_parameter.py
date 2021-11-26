@@ -60,43 +60,63 @@ if __name__ == '__main__':
 
     x_array = torch.tensor(np.linspace(0, patch_size - 1, patch_size).astype("float32"),
                            device=constants.DEVICE).reshape([1, 1, -1, 1])
-
-
-    def generate_image(in_theta):
-        in_theta = in_theta.reshape([in_theta.shape[0], 1, 1, 1])
-        p = torch.min(torch.abs(in_theta - x_array) / 2.0, torch.tensor(1.0, device=constants.DEVICE))
-        alpha = c_b - c_a
-        i_x = alpha * p + c_a
-        i_xy = i_x.repeat([1, patch_size, 1, 1])
-        return i_xy
+    width_array = [1, 1.1, 1.5, 2, 4, 6, 8, 16, 24, 31]
+    width_array = [2.0]
 
 
     def image2vector(in_image):
         return torch.permute(in_image, (0, 3, 1, 2))
 
 
-    cross_point = 16
-    theta_vector = cross_point * torch.ones(batch_size, requires_grad=True).to(constants.DEVICE)
+    k = 0
+    plot_images = True
+    color_swip = True
+    cross_point_array = [1, 2, 4, 8, 16, 24, 31]
+    cross_point_array = [24, 16]
+    for edge_width in width_array:
+        def generate_image(in_theta):
+            in_theta = in_theta.reshape([in_theta.shape[0], 1, 1, 1])
+            # p = torch.min(torch.abs(in_theta - x_array) / edge_width, torch.tensor(1.0, device=constants.DEVICE))
+            p = torch.min(torch.relu(in_theta - x_array) / edge_width, torch.tensor(1.0, device=constants.DEVICE))
+            if color_swip:
+                alpha = c_a - c_b
+                i_x = alpha * p + c_b
+            else:
+                alpha = c_b - c_a
+                i_x = alpha * p + c_a
+            i_xy = i_x.repeat([1, patch_size, 1, 1])
+            return i_xy
 
 
-    def sample_function(in_batch_size, in_theta):
-        bayer_img = generate_image(in_theta)
-        clean_im = image2vector(bayer_img)
-        in_cond_vector = [clean_im, iso, cam]
-        return flow.sample_nll(in_batch_size, cond=in_cond_vector).reshape([-1, 1])
+        for cross_point in cross_point_array:
+            theta_vector = cross_point * torch.ones(batch_size, requires_grad=True).to(constants.DEVICE)
+            if plot_images and (cross_point == 24 or cross_point == 16):
+                plt.subplot(1, 2, 1 + k)
+                clean_im = generate_image(theta_vector)[0, :, :, :].detach().cpu().numpy()
+                clean_im = process_sidd_image(unpack_raw(clean_im), bayer_2by2, wb, cst2)
+                plt.imshow(clean_im.astype('int'))
+                plt.title(f"Edge Position:{cross_point}")
+                plt.axis('off')
+                k += 1
 
 
-    gfim = gcrb.adaptive_sampling_gfim(sample_function, theta_vector.reshape([-1, 1]), batch_size=batch_size,
-                                       n_max=32000)
-    psnr = 10 * torch.log(torch.linalg.inv(gfim).diagonal().mean()) / np.log(10)
-    print(psnr)
+            def sample_function(in_batch_size, in_theta):
+                bayer_img = generate_image(in_theta)
+                in_cond_vector = [image2vector(bayer_img), iso, cam]
+                return flow.sample_nll(in_batch_size, cond=in_cond_vector).reshape([-1, 1])
+
+
+            gfim = gcrb.adaptive_sampling_gfim(sample_function, theta_vector.reshape([-1, 1]), batch_size=batch_size,
+                                               n_max=64000)
+            psnr = 10 * torch.log(torch.linalg.inv(gfim).diagonal().mean()) / np.log(10)
+            print(psnr)
+    plt.show()
     # title_list = ["Red", "Green", "Green", "Blue"]
     # gcrb_diag = torch.linalg.inv(gfim).detach().cpu().numpy().diagonal().reshape([4, 32, 32])
     # gcrb_diag_image = unpack_raw(np.transpose(gcrb_diag, (1, 2, 0)))
     # gcrb_diag_image = flip_bayer(gcrb_diag_image, bayer_2by2)
     # gcrb_diag_image = stack_rggb_channels(gcrb_diag_image)
-    # if plot_images:
-    #     clean_im = torch.reshape(theta_vector, [batch_size, 4, patch_size, patch_size])
+
     #     noise_image = flow.sample(batch_size, cond=[clean_im, iso, cam])
     #     noise_image = noise_image[-1].cpu().detach().numpy()
     #
