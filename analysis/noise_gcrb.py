@@ -178,24 +178,37 @@ if __name__ == '__main__':
                     noise_image = np.transpose(noise_image, (0, 2, 3, 1))[0, :, :, :]
                     noise_srgb = process_sidd_image(unpack_raw(noise_image), bayer_2by2, wb, cst2)
                     m = len(scene_number2run)
-                    plt.subplot(6, m, 1 + j)
-                    plt.imshow(clean_patch_srgb.astype('int')[2:-2, 2:-2, :])
+                    plot_a = True
+                    if plot_a:
+                        for i in range(8):
+                            plt.subplot(8, len(scene_number2run), 1 + i * m + j)
 
-                    plt.axis('off')
-                    plt.subplot(6, m, 1 + m + j)
-                    plt.imshow(noise_srgb.astype('int')[2:-2, 2:-2, :])
+                            gcrb_im = gcrb_diag_image[:, :, i % 4][1:-1, 1:-1]
+                            plt.imshow(gcrb_im)
+                            ticks = [gcrb_im.min(), gcrb_im.max()]
 
-                    plt.axis('off')
-                    for i in range(4):
-                        plt.subplot(6, len(scene_number2run), 1 + (2 + i) * m + j)
-                        print(gcrb_diag_image.max())
-                        gcrb_im = gcrb_diag_image[:, :, i][1:-1, 1:-1]
-                        plt.imshow(gcrb_diag_image[:, :, i][1:-1, 1:-1])
-                        ticks = [gcrb_im.min(), gcrb_im.max()]
-                        print(ticks)
-                        cbar = plt.colorbar(ticks=ticks, orientation="horizontal", fraction=0.046,
-                                            pad=0.04, format="%.4f")
+                            cbar = plt.colorbar(ticks=ticks, orientation="horizontal", fraction=0.046,
+                                                pad=0.04, format="%.4f")
+                            plt.axis('off')
+                    else:
+                        plt.subplot(6, m, 1 + j)
+                        plt.imshow(clean_patch_srgb.astype('int')[2:-2, 2:-2, :])
+
                         plt.axis('off')
+                        plt.subplot(6, m, 1 + m + j)
+                        plt.imshow(noise_srgb.astype('int')[2:-2, 2:-2, :])
+
+                        plt.axis('off')
+                        for i in range(4):
+                            plt.subplot(6, len(scene_number2run), 1 + (2 + i) * m + j)
+
+                            gcrb_im = gcrb_diag_image[:, :, i][1:-1, 1:-1]
+                            plt.imshow(gcrb_diag_image[:, :, i][1:-1, 1:-1])
+                            ticks = [gcrb_im.min(), gcrb_im.max()]
+                            print(ticks)
+                            cbar = plt.colorbar(ticks=ticks, orientation="horizontal", fraction=0.046,
+                                                pad=0.04, format="%.4f")
+                            plt.axis('off')
 
             results_iso_dict[iso] = results_cam_dict
         results_dict[scene_number] = results_iso_dict
