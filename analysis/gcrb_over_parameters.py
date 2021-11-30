@@ -6,7 +6,7 @@ from analysis.analysis_helpers import load_wandb_run
 if __name__ == '__main__':
     # run_name = "decent-disco-350"  # Scale  Model
     run_name = "toasty-sweep-79" # Linear Model
-    run_name = "sunny-brook-1290" # Linear Model
+    run_name = "graceful-shadow-1327" # Linear Model
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
     batch_size = 4096

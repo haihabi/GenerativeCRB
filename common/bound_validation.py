@@ -11,6 +11,11 @@ def norm(x_array):
 
 
 def gcrb_empirical_error(in_gcrb, in_crb):
+    if len(in_gcrb.shape) != len(in_crb.shape):
+        raise Exception("Shpae mismatch")
+    if len(in_gcrb.shape) == 2:
+        in_gcrb = np.expand_dims(in_gcrb, axis=0)
+        in_crb = np.expand_dims(in_crb, axis=0)
     return norm(in_gcrb - in_crb) / norm(in_crb)
 
 
