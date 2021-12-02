@@ -90,7 +90,7 @@ if __name__ == '__main__':
                                                        batch_size=batch_size,
                                                        n_max=64000)
                     psnr = 10 * torch.log(torch.linalg.inv(gfim).diagonal().mean()) / np.log(10)
-                    _results_croos_points.append(psnr)
+                    _results_croos_points.append(psnr.item())
                     print(psnr)
 
                 results_edge_width[edge_width] = _results_croos_points

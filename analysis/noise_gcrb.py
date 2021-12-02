@@ -192,8 +192,9 @@ if __name__ == '__main__':
                             gcrb_im = gcrb_diag_image[:, :, 0]
                             if i >= 1:
                                 gcrb_im = ngcrb[:, :, 0]
-                            plt.imshow(gcrb_im[1:-1, 1:-1])
-                            ticks = [gcrb_im.min(), gcrb_im.max()]
+                            gcrb_im_filter = gcrb_im[1:-1, 1:-1]
+                            plt.imshow(gcrb_im_filter)
+                            ticks = [gcrb_im_filter.min(), gcrb_im_filter.max()]
                             print(ticks)
                             if i >= 1:
                                 cbar = plt.colorbar(ticks=ticks, orientation="horizontal", fraction=0.046,
