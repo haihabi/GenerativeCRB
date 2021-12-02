@@ -180,15 +180,27 @@ if __name__ == '__main__':
                     m = len(scene_number2run)
                     plot_a = True
                     if plot_a:
-                        for i in range(8):
-                            plt.subplot(8, len(scene_number2run), 1 + i * m + j)
+                        clean_im_np = clean_im.cpu().detach().numpy()[0, :, :, :]
+                        ngcrb = np.sqrt(gcrb_diag) / clean_im_np
 
-                            gcrb_im = gcrb_diag_image[:, :, i % 4][1:-1, 1:-1]
-                            plt.imshow(gcrb_im)
+                        ngcrb = unpack_raw(np.transpose(ngcrb, (1, 2, 0)))
+                        ngcrb = flip_bayer(ngcrb, bayer_2by2)
+                        ngcrb = stack_rggb_channels(ngcrb)
+                        for i in range(2):
+                            plt.subplot(2, len(scene_number2run), 1 + i * m + j)
+
+                            gcrb_im = gcrb_diag_image[:, :, 0]
+                            if i >= 1:
+                                gcrb_im = ngcrb[:, :, 0]
+                            plt.imshow(gcrb_im[1:-1, 1:-1])
                             ticks = [gcrb_im.min(), gcrb_im.max()]
-
-                            cbar = plt.colorbar(ticks=ticks, orientation="horizontal", fraction=0.046,
-                                                pad=0.04, format="%.4f")
+                            print(ticks)
+                            if i >= 1:
+                                cbar = plt.colorbar(ticks=ticks, orientation="horizontal", fraction=0.046,
+                                                    pad=0.04, format="%.2f")
+                            else:
+                                cbar = plt.colorbar(ticks=ticks, orientation="horizontal", fraction=0.046,
+                                                    pad=0.04, format="%.4f")
                             plt.axis('off')
                     else:
                         plt.subplot(6, m, 1 + j)
