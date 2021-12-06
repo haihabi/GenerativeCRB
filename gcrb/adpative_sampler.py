@@ -24,8 +24,8 @@ def adaptive_sampling_gfim(model, in_theta_tensor, batch_size=128, eps=0.01, p_m
                 update_size = fim_collector.append_fim(gfim, s_vector)
                 pbar.update(update_size)
 
-            e_norm = fim_collector.calculate_score_norm()  # L2 norm of the score vector
-            e_norm = fim_collector.calculate_score_norm_max()  # L2 norm of the score vector
+            # e_norm = fim_collector.calculate_score_norm()  # L2 norm of the score vector
+            e_norm = fim_collector.calculate_score_max_norm()  # L2 norm of the score vector
             fim_inv_est = torch.linalg.inv(fim_collector.calculate_final_fim())
             fim_inv_norm = torch.sqrt(torch.pow(fim_inv_est, 2.0).sum())
             # conv_inv_half = torch.linalg.inv(

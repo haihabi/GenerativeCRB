@@ -16,6 +16,7 @@ def normalizing_flow_training(flow_model: NormalizingFlowModel, training_dataset
         flow_model.train()
         print("Starting Training Loop")
         for x, theta in tqdm(training_dataset):
+            flow_optimizer.zero_grad()
             x, theta = x.to(constants.DEVICE), theta.to(constants.DEVICE)
             loss = flow_model.nll_mean(x, cond=theta)
             loss.backward()
