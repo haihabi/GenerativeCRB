@@ -52,8 +52,8 @@ if __name__ == '__main__':
     width_array = [1, 1.1, 1.5, 2, 4, 8, 16, 24, 31]
     cross_point_array = [1, 4, 8, 12, 16, 20, 24, 28, 29, 30, 31]
 
-    width_array = [2, 8, 24, 31]
-    cross_point_array = [1, 12, 16, 28, 31]
+    width_array = [1.5, 2, 4, 8, 16, 24, 31]
+    cross_point_array = [1, 2, 4,6, 8,10, 12, 16, 20, 24, 28, 31]
     iso_array = [100, 400, 800, 1600, 3200]
     cam_array = [0, 1, 2, 3, 4]
     results = {}
