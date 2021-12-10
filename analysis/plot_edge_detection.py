@@ -29,6 +29,8 @@
 # plt.title("Swap colors")
 # plt.grid()
 # plt.show()
+import pickle
+
 import torch
 import constants
 import numpy as np
@@ -71,6 +73,11 @@ print(f"illuminant temperature:{temp[i]}", folder_base)
 
 metadata, bayer_2by2, wb, cst2, _, _ = read_metadata(
     glob.glob(f"{folder_base}/*_METADATA_RAW_010.MAT")[0])
+
+import pickle
+d = (bayer_2by2, wb, cst2)
+with open("metadata_edge.pickle", "wb") as f:
+    pickle.dump(d, f)
 
 
 class GenerateEdgeFunction(object):

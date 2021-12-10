@@ -43,10 +43,26 @@ def input_arguments():
     return parser.parse_args()
 
 
+CLEAN_IMAGE_PATH = {0: {"001": (225, 282, "0030_001_IP_01600_02000_5500_N", None),
+                        "002": (1257, 1387, "0030_001_IP_01600_02000_5500_N", None),
+                        "003": (270, 1475, "0030_001_IP_01600_02000_5500_N", None)},
+                    1: {"001": (1210, 1658, "0017_001_GP_00100_00060_5500_N", (1, 2)),
+                        "002": (280, 655, "0017_001_GP_00100_00060_5500_N", (1, 2)),
+                        "003": (1170, 580, "0017_001_GP_00100_00060_5500_N", (1, 2))},
+                    2: {"001": (1379, 365, "0012_001_S6_00800_00500_5500_N", (2)),
+                        "002": (80, 1755, "0012_001_S6_00800_00500_5500_N", (2)),
+                        "003": (1313, 1882, "0012_001_S6_00800_00500_5500_N", (2))},
+                    3: {"001": (1332, 1780, "0022_001_N6_00100_00060_5500_N", (1, 2)),
+                        "002": (280, 660, "0022_001_N6_00100_00060_5500_N", (1, 2)),
+                        "003": (1283, 567, "0022_001_N6_00100_00060_5500_N", (1, 2))},
+                    4: None}
+cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
+cam_dict_r = {v: k for k, v in cam_dict.items()}
 if __name__ == '__main__':
     args = input_arguments()
     dataset_folder = "/data/datasets/SIDD_Medium_Raw/Data/"
     scene_number2run = ["003", "007", "010"]  # "003", "007", "010"
+    scene_number2run = ["001", "002", "003"]  # "003", "007", "010"
     batch_size = 32
     n_max = 32000
     debug_plot = False
@@ -57,49 +73,45 @@ if __name__ == '__main__':
     plot_device = args.plot_device and not sweep
 
     iso_array = [100, 400, 800, 1600, 3200] if plot_images_iso or sweep else [args.iso]
-    cam_array = [0, 1, 2, 3, 4] if plot_device or sweep else [args.cam]
+
+    cam_array = [0, 1, 2, 3] if plot_device or sweep else [args.cam]
+
     patch_size = args.patch_size
     print(iso_array, cam_array, patch_size)
     title_list = ["R", "G", "G", "B"]
+
+    results_dict = {}
     flow = generate_noisy_image_flow([4, patch_size, patch_size], device=constants.DEVICE, load_model=True).to(
         constants.DEVICE)
-    results_dict = {}
     for j, scene_number in enumerate(scene_number2run):
-        if scene_number == "007":
-            u, v = 1420, 1630
-            folder_name = "0155_007_GP_00100_00100_5500_N"
-        elif scene_number == "010":
-            u, v = 790, 1840
-            folder_name = "0199_010_GP_00800_01600_5500_N"
-        elif scene_number == "003":
-            u, v = 828, 950
-            folder_name = "0054_003_N6_00100_00160_5500_N"
-        else:
-            raise NotImplemented
 
-        folder_base = os.path.join(dataset_folder, folder_name)
-        clean = loader.load_raw_image_packed(glob.glob(f"{folder_base}/*_GT_RAW_010.MAT")[0])
-        metadata, bayer_2by2, wb, cst2, _, _ = read_metadata(
-            glob.glob(f"{folder_base}/*_METADATA_RAW_010.MAT")[0])
-
-        if patch_size == -1:
-            clean_patch = clean[0, v:patch_size, u:patch_size, :]
-        else:
-            clean_patch = clean[0, v:v + patch_size, u:u + patch_size, :]
-        clean_patch_srgb = process_sidd_image(unpack_raw(clean_patch), bayer_2by2, wb, cst2)
-        if debug_plot:
-            plt.imshow(clean_patch_srgb.astype('int'))
-            plt.title("Clean Image")
-            plt.show()
-
-        clean_image_tensor = np.transpose(np.expand_dims(clean_patch, axis=0), (0, 3, 1, 2))
-        theta_np = np.tile(clean_image_tensor.reshape([1, -1]), [batch_size, 1])
-        theta_vector = torch.tensor(theta_np, requires_grad=True).to(constants.DEVICE)
-        cam_dict_r = {v: k for k, v in cam_dict.items()}
         results_iso_dict = {}
         for k, iso in enumerate(iso_array):
             results_cam_dict = {}
             for m, cam in enumerate(cam_array):
+                u, v, folder_name, flip_axis = CLEAN_IMAGE_PATH[cam][scene_number]
+
+                folder_base = os.path.join(dataset_folder, folder_name)
+                clean = loader.load_raw_image_packed(glob.glob(f"{folder_base}/*_GT_RAW_010.MAT")[0])
+                metadata, bayer_2by2, wb, cst2, _, _ = read_metadata(
+                    glob.glob(f"{folder_base}/*_METADATA_RAW_010.MAT")[0])
+                if flip_axis is not None:
+                    clean = np.flip(clean, axis=flip_axis)
+                if patch_size == -1:
+                    v = 0
+                    u = 0
+                    clean_patch = clean[0, v:patch_size, u:patch_size, :]
+                else:
+                    clean_patch = clean[0, v:v + patch_size, u:u + patch_size, :]
+                clean_patch_srgb = process_sidd_image(unpack_raw(clean_patch), bayer_2by2, wb, cst2)
+                if debug_plot:
+                    plt.imshow(clean_patch_srgb.astype('int'))
+                    plt.title("Clean Image")
+                    plt.show()
+
+                clean_image_tensor = np.transpose(np.expand_dims(clean_patch, axis=0), (0, 3, 1, 2))
+                theta_np = np.tile(clean_image_tensor.reshape([1, -1]), [batch_size, 1])
+                theta_vector = torch.tensor(theta_np, requires_grad=True).to(constants.DEVICE)
                 print(f"running:{cam},{iso},{scene_number}")
 
 
@@ -178,7 +190,7 @@ if __name__ == '__main__':
                     noise_image = np.transpose(noise_image, (0, 2, 3, 1))[0, :, :, :]
                     noise_srgb = process_sidd_image(unpack_raw(noise_image), bayer_2by2, wb, cst2)
                     m = len(scene_number2run)
-                    plot_a = True
+                    plot_a = False
                     if plot_a:
                         clean_im_np = clean_im.cpu().detach().numpy()[0, :, :, :]
                         ngcrb = np.sqrt(gcrb_diag) / clean_im_np
@@ -230,6 +242,6 @@ if __name__ == '__main__':
     if sweep:
         import pickle
 
-        with open("/data/projects/GenerativeCRB/analysis/results.pickle", "wb") as file:
+        with open("/data/projects/GenerativeCRB/analysis/results_new.pickle", "wb") as file:
             pickle.dump(results_dict, file)
     print("a")
