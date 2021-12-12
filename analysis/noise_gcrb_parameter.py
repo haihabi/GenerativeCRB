@@ -48,12 +48,10 @@ if __name__ == '__main__':
 
 
     k = 0
-    color_swip = True
-    width_array = [1, 1.1, 1.5, 2, 4, 8, 16, 24, 31]
-    cross_point_array = [1, 4, 8, 12, 16, 20, 24, 28, 29, 30, 31]
+    color_swip = False
 
-    width_array = [1.5, 2, 4, 8, 16, 24, 31]
-    cross_point_array = [1, 2, 4,6, 8,10, 12, 16, 20, 24, 28, 31]
+    width_array = [2, 8, 16, 24, 30]
+    cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
     iso_array = [100, 400, 800, 1600, 3200]
     cam_array = [0, 1, 2, 3, 4]
     results = {}
@@ -99,5 +97,6 @@ if __name__ == '__main__':
 
     import pickle
 
-    with open("/data/projects/GenerativeCRB/analysis/results_edge.pickle", "wb") as file:
+    file_name = "results_edge" if not color_swip else "results_edge_swip"
+    with open(f"/analysis/{file_name}.pickle", "wb") as file:
         pickle.dump(results, file)
