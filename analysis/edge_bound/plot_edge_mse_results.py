@@ -3,11 +3,11 @@ from matplotlib import pyplot as plt
 import pickle
 
 iso_list = [100, 400, 800, 1600, 3200]
-cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 31]
+cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
 cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
 index2cam = {v: k for k, v in cam_dict.items()}
 # cross_point_array = [1, 12, 16, 28, 31]
-with open("./results_edge.pickle", "rb") as file:
+with open("./results_edge_swip.pickle", "rb") as file:
     data = pickle.load(file)
 
 print("a")
@@ -45,7 +45,7 @@ plt.show()
 for device in range(5):
     for n, iso in enumerate(iso_list):
         # plt.subplots(5,5,1 + device + n * 5)
-        plt.subplot(5, 5, 1 + device + n * 5)
+        plt.subplot(1, 5, 1 + n)
         for k, v in data[device][iso].items():
             plt.plot(cross_point_array, v, label=f"Edge width {k}")
         if n == 0 and device == 0: plt.legend(loc='upper center', bbox_to_anchor=(1.1, 1.4),
@@ -54,4 +54,4 @@ for device in range(5):
         if device == 0: plt.ylabel("MSE[dB]")
         plt.title(f"Device {index2cam[device]} on ISO {iso}")
         plt.grid()
-plt.show()
+    plt.show()

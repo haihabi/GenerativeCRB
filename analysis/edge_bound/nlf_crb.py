@@ -26,13 +26,18 @@ def calculate_edge_crb_nlf(edge_position, edge_width, alpha, delta, in_p_h, in_p
     dh_dtheta = np.tile(dh_dtheta, [patch_size, 1, 1])
     dh_dtheta = dh_dtheta.flatten().reshape([-1, 1])
 
-    c = np.power(alpha, 2) * h.flatten() + np.power(delta, 2.0)
-    c = np.diag(c)
-    c_inv = np.linalg.inv(c)
-    dc_dtheta = np.diag(np.power(alpha, 2) * dh_dtheta.flatten())
-    a = np.matmul(c_inv, dc_dtheta)
-    term_cov = 0.5 * np.trace(np.matmul(a.T, a))
-    term_mean = np.matmul(np.matmul(dh_dtheta.T, c_inv), dh_dtheta)
+    b = np.power(alpha, 2) * h.flatten() + np.power(delta, 2.0)
+    # b_inv = 1 / b
+    a_new = np.power(alpha, 2) * dh_dtheta.flatten() / b
+    term_cov = np.power(a_new, 2.0).sum() / 2
+    term_mean = (np.power(dh_dtheta.flatten(), 2.0) / b).sum()
+    # c = np.power(alpha, 2) * h.flatten() + np.power(delta, 2.0)
+    # c = np.diag(c)
+    # c_inv = np.linalg.inv(c)
+    # dc_dtheta = np.diag(np.power(alpha, 2) * dh_dtheta.flatten())
+    # a = np.matmul(c_inv, dc_dtheta)
+    # term_cov = 0.5 * np.trace(np.matmul(a.T, a))
+    # term_mean = np.matmul(np.matmul(dh_dtheta.T, c_inv), dh_dtheta)
     fim = term_mean + term_cov
     return 1 / fim
 

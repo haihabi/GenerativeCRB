@@ -57,27 +57,8 @@ def unpack_raw(raw4ch):
     return bayer
 
 
-dataset_folder = "/data/datasets/SIDD_Medium_Raw/Data/"
-scene_number = "001"
-iso_str = "00100"
-illumination_code = "N"
-# iso = 100
-folder_name = f"*_{scene_number}_S6_{iso_str}_*_*_{illumination_code}"
-
-folder_optins = glob.glob(os.path.join(dataset_folder, folder_name))
-temp = [int(fo.split("_")[-2]) for fo in folder_optins]
-i = np.argmax(temp)
-
-folder_base = folder_optins[i]
-print(f"illuminant temperature:{temp[i]}", folder_base)
-
-metadata, bayer_2by2, wb, cst2, _, _ = read_metadata(
-    glob.glob(f"{folder_base}/*_METADATA_RAW_010.MAT")[0])
-
-import pickle
-d = (bayer_2by2, wb, cst2)
-with open("metadata_edge.pickle", "wb") as f:
-    pickle.dump(d, f)
+with open("../metadata_edge.pickle", "rb") as f:
+    bayer_2by2, wb, cst2 = pickle.load(f)
 
 
 class GenerateEdgeFunction(object):
