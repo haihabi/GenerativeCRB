@@ -98,5 +98,5 @@ if __name__ == '__main__':
     import pickle
 
     file_name = "results_edge" if not color_swip else "results_edge_swip"
-    with open(f"/analysis/{file_name}.pickle", "wb") as file:
+    with open(f"{file_name}.pickle", "wb") as file:
         pickle.dump(results, file)
