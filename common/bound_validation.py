@@ -4,6 +4,12 @@ import torch
 import numpy as np
 from matplotlib import pyplot as plt
 import wandb
+from enum import Enum
+
+
+class SamplingMethod(Enum):
+    CONSTANT = 0
+    ADAPTIVE = 1
 
 
 def norm(x_array):
@@ -21,7 +27,8 @@ def gcrb_empirical_error(in_gcrb, in_crb):
 
 def generate_gcrb_validation_function(current_data_model, in_regression_network, batch_size,
                                       logging=False, n_validation_point=20, optimal_model=None,
-                                      return_full_results=False, eps=0.01):
+                                      return_full_results=False, eps=0.01, m=65e3,
+                                      sampling_method=SamplingMethod.CONSTANT, theta_scale_min=None, theta_scale_max=None):
     def check_example(in_flow_model):
         start_time = time.time()
         crb_list = []
@@ -36,23 +43,30 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
         optimal_model_exists = optimal_model is not None
         if in_regression_network is not None:
             in_regression_network.eval()
-        for theta in current_data_model.parameter_range(n_validation_point):
+        for theta in current_data_model.parameter_range(n_validation_point, theta_scale_min=theta_scale_min, theta_scale_max=theta_scale_max):
 
             if in_regression_network is not None:
                 x = current_data_model.generate_data(512, theta)
                 theta_hat = in_regression_network(x)
                 mse_regression_list.append(torch.pow(theta_hat - theta, 2.0).mean().item())
             if optimal_model_exists:
-                fim_optimal_back = gcrb.adaptive_sampling_gfim(optimal_model, theta.reshape([-1]),
-                                                               batch_size=batch_size)
+                if sampling_method == SamplingMethod.CONSTANT:
+                    fim_optimal_back = gcrb.sampling_gfim(optimal_model, theta.reshape([-1]), m,
+                                                          batch_size=batch_size)
+                else:
+                    fim_optimal_back = gcrb.adaptive_sampling_gfim(optimal_model, theta.reshape([-1]),
+                                                                   batch_size=batch_size)
                 grcb_optimal_flow = torch.linalg.inv(fim_optimal_back)
                 gcrb_optimal_flow_list.append(grcb_optimal_flow.detach().cpu().numpy())
                 gfim_optimal_flow_list.append(fim_optimal_back.detach().cpu().numpy())
             crb_list.append(current_data_model.crb(theta).detach().cpu().numpy())
             fim_list.append(np.linalg.inv(crb_list[-1]))
-
-            fim_back = gcrb.adaptive_sampling_gfim(in_flow_model, theta.reshape([-1]),
-                                                   batch_size=batch_size, eps=eps)
+            if sampling_method == SamplingMethod.CONSTANT:
+                fim_back = gcrb.sampling_gfim(in_flow_model, theta.reshape([-1]), m,
+                                              batch_size=batch_size)
+            else:
+                fim_back = gcrb.adaptive_sampling_gfim(in_flow_model, theta.reshape([-1]),
+                                                       batch_size=batch_size, eps=eps)
             grcb_flow = torch.linalg.inv(fim_back)
 
             parameter_list.append(theta.detach().cpu().numpy())

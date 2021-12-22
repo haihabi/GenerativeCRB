@@ -46,10 +46,12 @@ if __name__ == '__main__':
     crb = np.linalg.inv(fim)
     _results_iteration = []
     eps_list = [0.1, 0.05, 0.01, 0.005]
+    n_samples = [32e3, 64e3, 128e3, 256e3]
     for i in tqdm(range(n_iter)):
         res_eps = []
-        for eps in eps_list:
-            fim_rep_mean___ = gcrb.adaptive_sampling_gfim(optimal_flow, theta, batch_size=batch_size, eps=eps)
+        for m in n_samples:
+            # fim_rep_mean___ = gcrb.adaptive_sampling_gfim(optimal_flow, theta, batch_size=batch_size, eps=eps)
+            fim_rep_mean___ = gcrb.sampling_gfim(optimal_flow, theta, m, batch_size=batch_size)
             gcrb_matrix = torch.linalg.inv(fim_rep_mean___).cpu().detach().numpy()
             re = common.gcrb_empirical_error(gcrb_matrix, crb)
             res_eps.append(re)
@@ -64,8 +66,6 @@ if __name__ == '__main__':
         count, bins = np.histogram(results_array[:, i], density=True, bins=20)
         count_max = max(count_max, np.max(count))
         plt.plot(bins[:-1], count, "--", label=r"$\epsilon=$" + f"{eps}", color=color_list[i])
-    # for i, eps in enumerate(eps_list):
-    #     plt.plot([eps, eps], [0, np.max(count_max)], label=r"$\epsilon=$" + f"{eps}", color=color_list[i])
 
     plt.ylabel("PDF")
     plt.xlabel(r"$\mathrm{RE}(\theta)$")

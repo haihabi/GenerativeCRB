@@ -27,7 +27,7 @@ class FisherInformationMatrixCollector(nn.Module):
                 self.fim_mean_p2 += torch.pow(batch_fim, 2.0).sum(dim=0)
             mu = self.calculate_score_mean()
             max_norm = torch.sqrt(torch.pow(batch_score_vector - mu.reshape([1, -1]), 2.0).sum(dim=-1)).max()
-            self.score_norm_max.data=max_norm
+            self.score_norm_max.data = max_norm
 
         return batch_fim.shape[0]
 
@@ -35,15 +35,15 @@ class FisherInformationMatrixCollector(nn.Module):
         return self.score_sum / self.i
 
     def calculate_final_fim(self):
-        mean_correction = torch.matmul(torch.unsqueeze(self.calculate_score_mean(), dim=-1),
-                                       torch.unsqueeze(self.calculate_score_mean(), dim=-1).T)
-        return self.mean - mean_correction
+        # mean_correction = torch.matmul(torch.unsqueeze(self.calculate_score_mean(), dim=-1),
+        #                                torch.unsqueeze(self.calculate_score_mean(), dim=-1).T)
+        return self.mean
 
     def calculate_score_mean_norm(self):
         return torch.sqrt(torch.cat(self.score_norm_list).mean() - torch.pow(self.calculate_score_mean(), 2.0).sum())
 
     def calculate_score_max_norm(self):
-        return torch.sqrt((torch.cat(self.score_norm_list).max() + torch.pow(self.calculate_score_mean(), 2.0).sum()))
+        return torch.sqrt(torch.cat(self.score_norm_list).max())
 
     @property
     def size(self):
