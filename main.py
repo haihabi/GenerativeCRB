@@ -50,24 +50,26 @@ def config():
 
     cr.add_parameter('n_flow_blocks', default=9, type=int)
     cr.add_parameter('n_layer_cond', default=4, type=int)
+    cr.add_parameter('spline_k', default=8, type=int)
+    cr.add_parameter('spline_b', default=3, type=int)
     cr.add_parameter('hidden_size_cond', default=32, type=int)
     cr.add_parameter('mlp_bias', type=str, default="false")
     cr.add_parameter('affine_scale', type=str, default="false")
     cr.add_parameter('evaluation_every_step', type=str, default="true")
     cr.add_parameter('spline_flow', type=str, default="false")
     cr.add_parameter('affine_coupling', type=str, default="false")
-    cr.add_parameter('enable_lr_scheduler', type=str, default="true")
+    cr.add_parameter('enable_lr_scheduler', type=str, default="false")
     return cr
 
 
 def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupling, n_layer_cond=4,
                         hidden_size_cond=24, spline_b=3,
-                        spline_k=10, bias=True, affine_scale=True):
+                        spline_k=8, bias=True, affine_scale=True):
     flows = []
     condition_embedding_size = theta_dim
 
     def generate_nl():
-        return nn.PReLU(init=1.0)
+        return nn.SiLU()
 
     for i in range(n_flow_blocks):
         flows.append(nfp.flows.ActNorm(dim=dim))
@@ -84,7 +86,7 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupl
         if affine_coupling:
             flows.append(
                 nfp.flows.AffineCouplingFlowVector(dim=dim, parity=i % 2, scale=affine_scale))
-        if spline_flow and i != (n_flow_blocks - 1):
+        if spline_flow:
             flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b))
 
     return nfp.NormalizingFlowModel(MultivariateNormal(torch.zeros(dim, device=constants.DEVICE),
@@ -129,9 +131,9 @@ if __name__ == '__main__':
 
     os.makedirs(run_parameters.base_dataset_folder, exist_ok=True)  # TODO:make a function & change name to model names
     training_dataset_file_path = os.path.join(run_parameters.base_dataset_folder,
-                                              f"training_{dm.name}_{run_parameters.dataset_size}_dataset.pickle")
+                                              f"training_{dm.name}_{run_parameters.dataset_size}_{run_parameters.theta_min}_{run_parameters.theta_max}_dataset.pickle")
     validation_dataset_file_path = os.path.join(run_parameters.base_dataset_folder,
-                                                f"validation_{dm.name}_{run_parameters.val_dataset_size}_dataset.pickle")
+                                                f"validation_{dm.name}_{run_parameters.val_dataset_size}_{run_parameters.theta_min}_{run_parameters.theta_max}_dataset.pickle")
     model_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "models")
     os.makedirs(model_dataset_file_path, exist_ok=True)
     if dm.model_exist(model_dataset_file_path):
@@ -155,9 +157,9 @@ if __name__ == '__main__':
     common.set_seed(0)
 
     training_dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
-                                                          shuffle=True, num_workers=0)
+                                                          shuffle=True, num_workers=4, pin_memory=True)
     validation_dataset_loader = torch.utils.data.DataLoader(validation_data, batch_size=run_parameters.batch_size,
-                                                            shuffle=False, num_workers=0)
+                                                            shuffle=False, num_workers=4, pin_memory=True)
 
     model_opt = dm.get_optimal_model()
 
@@ -166,8 +168,18 @@ if __name__ == '__main__':
                                      n_layer_cond=run_parameters.n_layer_cond,
                                      hidden_size_cond=run_parameters.hidden_size_cond,
                                      bias=run_parameters.mlp_bias,
-                                     affine_scale=run_parameters.affine_scale
+                                     affine_scale=run_parameters.affine_scale,
+                                     spline_b=run_parameters.spline_b,
+                                     spline_k=run_parameters.spline_k,
                                      )
+
+    # ema_flow_model = generate_flow_model(run_parameters.dim, run_parameters.theta_dim, run_parameters.n_flow_blocks,
+    #                                      run_parameters.spline_flow, run_parameters.affine_coupling,
+    #                                      n_layer_cond=run_parameters.n_layer_cond,
+    #                                      hidden_size_cond=run_parameters.hidden_size_cond,
+    #                                      bias=run_parameters.mlp_bias,
+    #                                      affine_scale=run_parameters.affine_scale
+    #                                      )
     optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
                                                               lr=run_parameters.nf_lr,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
@@ -177,11 +189,14 @@ if __name__ == '__main__':
                                                               scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
     check_training = common.generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
                                                               logging=False)
-
+    # ema = common.ExponentialMovingAverage(flow_model.parameters(), decay=0.9)
+    # ema.copy_to(ema_flow_model.parameters())
     best_flow_model, flow_model = normalizing_flow_training(flow_model, training_dataset_loader,
                                                             validation_dataset_loader,
                                                             optimizer_flow,
-                                                            check_gcrb=check_training if run_parameters.evaluation_every_step else None)
+                                                            check_gcrb=check_training if run_parameters.evaluation_every_step else None,
+                                                            ema=None,
+                                                            ema_flow=None)
     # Save Flow to Weights and Bias
     torch.save(best_flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_best.pt"))
     torch.save(flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_last.pt"))

@@ -9,6 +9,7 @@ import numpy as np
 import constants
 import os
 import glob
+from edge_bound.edge_image_generator import EdgeImageGenerator
 
 if __name__ == '__main__':
     flow = generate_noisy_image_flow([4, 32, 32], device=constants.DEVICE, load_model=True).to(constants.DEVICE)
@@ -32,15 +33,7 @@ if __name__ == '__main__':
     patch_size = 32
     plot_images = False
 
-    c_b = torch.tensor(
-        np.asarray([0.34292033, 0.22350113, 0.33940127, 0.13547006]).astype("float32").reshape(1, 1, 1, -1),
-        device=constants.DEVICE)
-    c_a = torch.tensor(
-        np.asarray([0.03029606, 0.02065253, 0.02987719, 0.01571027]).astype("float32").reshape(1, 1, 1, -1),
-        device=constants.DEVICE)
-
-    x_array = torch.tensor(np.linspace(0, patch_size - 1, patch_size).astype("float32"),
-                           device=constants.DEVICE).reshape([1, 1, -1, 1])
+    eig = EdgeImageGenerator(patch_size)
 
 
     def image2vector(in_image):
@@ -60,19 +53,7 @@ if __name__ == '__main__':
         for iso in iso_array:
             results_edge_width = {}
             for edge_width in width_array:
-                def generate_image(in_theta):
-                    in_theta = in_theta.reshape([in_theta.shape[0], 1, 1, 1])
-                    # p = torch.min(torch.abs(in_theta - x_array) / edge_width, torch.tensor(1.0, device=constants.DEVICE))
-                    # p = torch.min(torch.relu(in_theta - x_array) / edge_width, torch.tensor(1.0, device=constants.DEVICE))
-                    p = torch.sigmoid((in_theta - x_array) / edge_width)
-                    if color_swip:
-                        alpha = c_a - c_b
-                        i_x = alpha * p + c_b
-                    else:
-                        alpha = c_b - c_a
-                        i_x = alpha * p + c_a
-                    i_xy = i_x.repeat([1, patch_size, 1, 1])
-                    return i_xy
+                generate_image = eig.get_image_function(edge_width, color_swip)
 
 
                 def sample_function(in_batch_size, in_theta):
