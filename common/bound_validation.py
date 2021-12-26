@@ -27,7 +27,7 @@ def gcrb_empirical_error(in_gcrb, in_crb):
 
 def generate_gcrb_validation_function(current_data_model, in_regression_network, batch_size,
                                       logging=False, n_validation_point=20, optimal_model=None,
-                                      return_full_results=False, eps=0.01, m=65e3,
+                                      return_full_results=False, eps=0.01, m=128e3,
                                       sampling_method=SamplingMethod.CONSTANT, theta_scale_min=None, theta_scale_max=None):
     def check_example(in_flow_model):
         start_time = time.time()

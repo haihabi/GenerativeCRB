@@ -11,16 +11,20 @@ ISO2INDEX = {100: 0,
 
 
 class NoiseLevelFunction(nfp.ConditionalBaseFlowLayer):
-    def __init__(self, m_iso=5, n_cam=5):
+    def __init__(self, m_iso=5, n_cam=5, trained_alpha=True):
         super().__init__()
-        self.alpha = nn.Parameter(torch.zeros(m_iso, n_cam), requires_grad=True)
+        self.alpha = nn.Parameter(torch.ones(m_iso, n_cam) if trained_alpha else torch.zeros(m_iso, n_cam),
+                                  requires_grad=trained_alpha)
         self.delta = nn.Parameter(torch.ones(m_iso, n_cam))
 
     def _build_scale(self, clean_image, iso, cam):
-        iso_index = ISO2INDEX[iso]
-        clean_sqrt = torch.sqrt(clean_image)
-        beta1 = torch.abs(self.alpha[iso_index, cam]) * clean_sqrt
-        return torch.sqrt(beta1 * clean_image + torch.abs(self.delta))
+        # iso_index = ISO2INDEX[iso]
+        iso_index = int(iso == 400) + 2 * int(iso == 800) + 3 * int(iso == 1600) + 4 * int(iso == 3200)
+        # iso_index = iso_index.type(torch.long)
+        # cam = cam.type(torch.long)
+        beta1 = torch.pow(self.alpha[iso_index, cam], 2.0).reshape([-1, 1, 1, 1])
+        beta2 = torch.pow(self.delta[iso_index, cam], 2.0).reshape([-1, 1, 1, 1])
+        return torch.sqrt(beta1 * clean_image + beta2)
 
     def forward(self, x, cond):
         clean_image = cond[0]
