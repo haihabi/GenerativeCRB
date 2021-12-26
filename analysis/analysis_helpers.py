@@ -5,13 +5,14 @@ import os
 import constants
 import torch
 import data_model
+import normflowpy as nfp
 
 
 def get_data_model(in_config):
     def generate_model_parameter_dict() -> dict:
         return {constants.DIM: in_config[constants.DIM],
                 constants.THETA_MIN: in_config[constants.THETA_MIN],
-                constants.THETA_DIM: in_config.get(constants.THETA_DIM,1),
+                constants.THETA_DIM: in_config.get(constants.THETA_DIM, 1),
                 constants.SIGMA_N: in_config[constants.SIGMA_N],
                 constants.THETA_MAX: in_config[constants.THETA_MAX]}
 
@@ -30,12 +31,18 @@ def load_wandb_run(run_name):
             run.file("flow_best.pt").download()
 
             config = run.config
-            model_flow = generate_flow_model(config['dim'], config.get("theta_dim",1), config['n_flow_blocks'],
-                                             config["spline_flow"],False,
+            model_flow = generate_flow_model(config['dim'], config.get("theta_dim", 1), config['n_flow_blocks'],
+                                             config["spline_flow"], config.get("affine_coupling", False),
                                              n_layer_cond=config["n_layer_cond"],
-                                             hidden_size_cond=config["hidden_size_cond"])
+                                             hidden_size_cond=config["hidden_size_cond"],
+                                             bias=config["mlp_bias"],
+                                             affine_scale=config["affine_scale"])
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
-            model_flow = model_flow.to(constants.DEVICE)
+            model_flow = model_flow.to(constants.DEVICE).eval()
+            for flow in model_flow.flow.flows:
+                if isinstance(flow, nfp.flows.ActNorm):
+                    flow.data_dep_init_done = True
+
             dm, model_type = get_data_model(config)
             if model_type == data_model.ModelType.Linear:
                 if os.path.isfile(f"{dm.model_name}_model.pt"):

@@ -37,6 +37,9 @@ class SingleNetworkOptimization(object):
     def end_epoch(self):
         [s.step() for s in self.scheduler_list]
 
+    def zero_grad(self):
+        self.opt.zero_grad()
+
     def step(self):
 
         if self.grad_norm_clipping > 0:

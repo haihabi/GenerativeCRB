@@ -1,1 +1,2 @@
 from gcrb.adpative_sampler import adaptive_sampling_gfim
+from gcrb.constant_sampler import sampling_gfim

@@ -41,37 +41,34 @@ if __name__ == '__main__':
     m2r = data_model.get_model(model_type, generate_model_dict(dim, theta_dim))
     optimal_flow = m2r.get_optimal_model()
 
-    theta = theta_value * torch.ones([theta_dim],device=constants.DEVICE)
+    theta = theta_value * torch.ones([theta_dim], device=constants.DEVICE)
     fim = np.linalg.inv(m2r.crb(theta).cpu().detach().numpy())
+    crb = np.linalg.inv(fim)
     _results_iteration = []
     eps_list = [0.1, 0.05, 0.01, 0.005]
+    n_samples = [32e3, 64e3, 128e3, 256e3]
     for i in tqdm(range(n_iter)):
         res_eps = []
-        for eps in eps_list:
-            fim_rep_mean___ = gcrb.adaptive_sampling_gfim(optimal_flow, theta, batch_size=batch_size, eps=eps)
-            res_eps.append(fim_rep_mean___.cpu().detach().numpy())
+        for m in n_samples:
+            # fim_rep_mean___ = gcrb.adaptive_sampling_gfim(optimal_flow, theta, batch_size=batch_size, eps=eps)
+            fim_rep_mean___ = gcrb.sampling_gfim(optimal_flow, theta, m, batch_size=batch_size)
+            gcrb_matrix = torch.linalg.inv(fim_rep_mean___).cpu().detach().numpy()
+            re = common.gcrb_empirical_error(gcrb_matrix, crb)
+            res_eps.append(re)
 
         _results_iteration.append(res_eps)
     results_array = np.asarray(_results_iteration)
-    fim_size = results_array.shape[2:]
-    n_figures = np.prod(fim_size)
-    # count_max = 0
-    # for j in range(n_figures):
-    # j_x = j % 2
-    # j_y = int(j >= 2)
-    # plt.subplot(fim_size[0], fim_size[1], j + 1)
-    count_max = 0
-    results_trace = np.diagonal(results_array, axis1=2, axis2=3).sum(axis=-1) / fim_size[0]
-    for i, eps in enumerate(eps_list):
-        count, bins = np.histogram(results_trace[:, i], density=True, bins=20)
-        count_max = max(count_max, np.max(count))
-        plt.plot(bins[:-1], count, "--", label=r"$\epsilon=$" + f"{eps}")
+    results_array = np.squeeze(results_array, axis=-1)
 
-    plt.plot([np.trace(fim) / fim_size[0], np.trace(fim) / fim_size[0]], [0, np.max(count_max)], label="Analytic FIM")
+    count_max = 0
+    color_list = ["red", "green", "orange", "blue"]
+    for i, eps in enumerate(eps_list):
+        count, bins = np.histogram(results_array[:, i], density=True, bins=20)
+        count_max = max(count_max, np.max(count))
+        plt.plot(bins[:-1], count, "--", label=r"$\epsilon=$" + f"{eps}", color=color_list[i])
+
     plt.ylabel("PDF")
-    plt.xlabel(r"$\frac{1}{k}\mathrm{Tr}(\overline{\mathrm{GFIM}})$")
-    # plt.title(r"$\overline{\mathrm{GFIM}}$" + f"At {j_x}, {j_y}")
+    plt.xlabel(r"$\mathrm{RE}(\theta)$")
     plt.grid()
     plt.legend()
     plt.show()
-    print("a")

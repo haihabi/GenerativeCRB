@@ -33,9 +33,12 @@ class BaseModel(object):
     def model_exist(self, folder):
         return os.path.isfile(os.path.join(folder, f"{self.model_name}_model.pt"))
 
-    def parameter_range(self, n_steps):
-        return self.theta_min + (self.theta_max - self.theta_min) * torch.linspace(0, 1, n_steps,
-                                                                                   device=constants.DEVICE).reshape([-1, 1])
+    def parameter_range(self, n_steps, theta_scale_min=None, theta_scale_max=None):
+        theta_min = self.theta_min if theta_scale_min is None else theta_scale_min * self.theta_min
+        theta_max = self.theta_max if theta_scale_max is None else theta_scale_max * self.theta_max
+        return theta_min + (theta_max - theta_min) * torch.linspace(0, 1, n_steps,
+                                                                    device=constants.DEVICE).reshape(
+            [-1, 1])
 
     def build_dataset(self, dataset_size):
         print("Start Dataset Generation")

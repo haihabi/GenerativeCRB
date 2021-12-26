@@ -17,7 +17,7 @@ def config():
     cr = common.ConfigReader()
     cr.add_parameter('dataset_size', default=200000, type=int)
     cr.add_parameter('val_dataset_size', default=20000, type=int)
-    cr.add_parameter('batch_size', default=512, type=int)
+    cr.add_parameter('batch_size', default=64, type=int)
     cr.add_parameter('n_validation_point', default=20, type=int)
     cr.add_parameter('batch_size_validation', default=4096, type=int)
     cr.add_parameter('group', default="", type=str)
@@ -43,23 +43,26 @@ def config():
     #############################################
     # Regression Network - Flow
     #############################################
-    cr.add_parameter('n_epochs_flow', default=250, type=int)
+    cr.add_parameter('n_epochs_flow', default=40, type=int)
     cr.add_parameter('nf_weight_decay', default=0, type=float)
-    cr.add_parameter('nf_lr', default=0.0005, type=float)
+    cr.add_parameter('nf_lr', default=0.00001, type=float)
     cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
     cr.add_parameter('n_flow_blocks', default=9, type=int)
     cr.add_parameter('n_layer_cond', default=4, type=int)
     cr.add_parameter('hidden_size_cond', default=32, type=int)
-    cr.add_parameter('evaluation_every_step', type=str, default="false")
-    cr.add_parameter('spline_flow', type=str, default="true")
+    cr.add_parameter('mlp_bias', type=str, default="false")
+    cr.add_parameter('affine_scale', type=str, default="false")
+    cr.add_parameter('evaluation_every_step', type=str, default="true")
+    cr.add_parameter('spline_flow', type=str, default="false")
     cr.add_parameter('affine_coupling', type=str, default="false")
+    cr.add_parameter('enable_lr_scheduler', type=str, default="true")
     return cr
 
 
-def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow,affine_coupling, n_layer_cond=4,
+def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupling, n_layer_cond=4,
                         hidden_size_cond=24, spline_b=3,
-                        spline_k=8):
+                        spline_k=10, bias=True, affine_scale=True):
     flows = []
     condition_embedding_size = theta_dim
 
@@ -67,18 +70,20 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow,affine_coupli
         return nn.PReLU(init=1.0)
 
     for i in range(n_flow_blocks):
-        if affine_coupling:
-            flows.append(
-                nfp.flows.AffineCouplingFlowVector(dim=dim, parity=i % 2, scale=True))
+        flows.append(nfp.flows.ActNorm(dim=dim))
+        flows.append(
+            nfp.flows.InvertibleFullyConnected(dim=dim))
+
         flows.append(
             nfp.flows.AffineInjector(dim=dim,
                                      net_class=nfp.base_nets.generate_mlp_class(hidden_size_cond, n_layer=n_layer_cond,
-                                                                                non_linear_function=generate_nl),
-                                     scale=True,
+                                                                                non_linear_function=generate_nl,
+                                                                                bias=bias),
+                                     scale=affine_scale,
                                      condition_vector_size=condition_embedding_size))
-
-        flows.append(
-            nfp.flows.InvertibleFullyConnected(dim=dim))
+        if affine_coupling:
+            flows.append(
+                nfp.flows.AffineCouplingFlowVector(dim=dim, parity=i % 2, scale=affine_scale))
         if spline_flow and i != (n_flow_blocks - 1):
             flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b))
 
@@ -157,16 +162,18 @@ if __name__ == '__main__':
     model_opt = dm.get_optimal_model()
 
     flow_model = generate_flow_model(run_parameters.dim, run_parameters.theta_dim, run_parameters.n_flow_blocks,
-                                     run_parameters.spline_flow,run_parameters.affine_coupling,
+                                     run_parameters.spline_flow, run_parameters.affine_coupling,
                                      n_layer_cond=run_parameters.n_layer_cond,
-                                     hidden_size_cond=run_parameters.hidden_size_cond
+                                     hidden_size_cond=run_parameters.hidden_size_cond,
+                                     bias=run_parameters.mlp_bias,
+                                     affine_scale=run_parameters.affine_scale
                                      )
     optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
                                                               lr=run_parameters.nf_lr,
                                                               optimizer_type=neural_network.OptimizerType.Adam,
                                                               weight_decay=run_parameters.nf_weight_decay,
                                                               grad_norm_clipping=run_parameters.grad_norm_clipping,
-                                                              enable_lr_scheduler=True,
+                                                              enable_lr_scheduler=run_parameters.enable_lr_scheduler,
                                                               scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
     check_training = common.generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
                                                               logging=False)
