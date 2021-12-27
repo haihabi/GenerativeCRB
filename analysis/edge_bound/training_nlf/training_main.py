@@ -7,6 +7,8 @@ from torch.distributions import MultivariateNormal
 import numpy as np
 from tqdm import tqdm
 from pytorch_model.noise_flow import generate_noisy_image_flow, ImageFlowStep
+from torch.utils.data import DataLoader
+from analysis.edge_bound.training_nlf.noise_dataset import NoiseDataSet
 
 
 def generate_nlf_flow(in_input_shape, in_trained_alpha, noise_only=True):
@@ -20,6 +22,27 @@ def generate_nlf_flow(in_input_shape, in_trained_alpha, noise_only=True):
     return nfp.NormalizingFlowModel(prior, flows).cuda()
 
 
+def sample_input_model():
+    iso = np.random.choice(iso_list, size=1).repeat(32)
+    cam = np.random.choice(device_list, size=1).repeat(32)
+    edge_position = np.random.choice(edge_position_list, size=32)
+    clean = image_func(torch.tensor(edge_position).to(constants.DEVICE).reshape([-1]))
+    clean = torch.permute(clean, (0, 3, 1, 2))
+    cond_vector = [clean, torch.tensor(iso).to(constants.DEVICE).reshape([-1]).long(),
+                   torch.tensor(cam).to(constants.DEVICE).reshape([-1]).long()]
+    noisy_image = noise_flow.sample(32, cond=cond_vector)
+    noise = (noisy_image[-1] - clean).detach()
+    return noise, cond_vector
+
+
+def train_step(in_noise, in_cond_vector):
+    opt.zero_grad()
+    loss = flow.nll_mean(in_noise, in_cond_vector)
+    loss.backward()
+    loss_list.append(loss.item())
+    opt.step()
+
+
 if __name__ == '__main__':
 
     lr = 1e-4
@@ -27,40 +50,38 @@ if __name__ == '__main__':
     n_epochs = 150
     n_iter_per_epoch = 1000
     input_shape = [4, patch_size, patch_size]
-    trained_alpha = True
-    noise_flow = generate_noisy_image_flow([4, patch_size, patch_size], device=constants.DEVICE, load_model=True,
-                                           noise_only=False).to(
-        constants.DEVICE)
+    trained_alpha = False
     flow = generate_nlf_flow(input_shape, trained_alpha)
-
     opt = torch.optim.Adam(flow.parameters(), lr=lr)
-    eig = EdgeImageGenerator(patch_size)
-    image_func = eig.get_image_function(8, color_swip=True)
+    train_dataset = True
+    if train_dataset:
+        nds = NoiseDataSet("/data/datasets/SIDD_Medium_Raw/Data", n_pat_per_im=5000)
+        print(len(nds))
+        nds_dl = DataLoader(nds, batch_size=32, shuffle=True)
+    else:
+        noise_flow = generate_noisy_image_flow([4, patch_size, patch_size], device=constants.DEVICE, load_model=True,
+                                               noise_only=False).to(
+            constants.DEVICE)
+        eig = EdgeImageGenerator(patch_size)
+        image_func = eig.get_image_function(16.0, color_swip=False)
+        iso_list = [100, 400, 800, 1600, 3200]
+        device_list = [0, 1, 2, 3, 4]
+        edge_position_list = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
 
     loss_best = np.inf
-    iso_list = [100, 400, 800, 1600, 3200]
-    device_list = [0, 1, 2, 3, 4]
-    edge_position_list = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
 
     for n in range(n_epochs):
         loss_list = []
-        for _ in range(n_iter_per_epoch):
-            iso = int(np.random.choice(iso_list))
-            cam = int(np.random.choice(device_list))
-            edge_position = np.random.choice(edge_position_list, size=32)
-            clean = image_func(torch.tensor(edge_position).to(constants.DEVICE).reshape([-1]))
-            clean = torch.permute(clean, (0, 3, 1, 2))
-            in_cond_vector = [clean, iso, cam]
-            noisy_image = noise_flow.sample(32, cond=in_cond_vector)
-            noise = (noisy_image[-1] - clean).detach()
-            # print(noise.mean(),noise.std())
-            # noise, clean, cam, iso = noise.cuda(), clean.cuda(), cam.cuda(), iso.cuda()
-            opt.zero_grad()
+        if train_dataset:
+            for noise, clean, cam, iso in nds_dl:
+                noise, clean, cam, iso = noise.cuda(), clean.cuda(), cam.long().cuda(), iso.cuda()
+                cond_vector = [clean, iso, cam]
+                train_step(noise, cond_vector)
+        else:
+            for _ in tqdm(range(n_iter_per_epoch)):
+                noise, cond_vector = sample_input_model()
+                train_step(noise, cond_vector)
 
-            loss = flow.nll(noise, in_cond_vector).mean()
-            loss.backward()
-            loss_list.append(loss.item())
-            opt.step()
         loss_current = sum(loss_list) / len(loss_list)
         print(loss_current)
         if loss_current < loss_best:

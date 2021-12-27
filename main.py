@@ -51,7 +51,7 @@ def config():
     cr.add_parameter('n_flow_blocks', default=9, type=int)
     cr.add_parameter('n_layer_cond', default=4, type=int)
     cr.add_parameter('spline_k', default=8, type=int)
-    cr.add_parameter('spline_b', default=3, type=int)
+    cr.add_parameter('spline_b', default=3.0, type=float)
     cr.add_parameter('hidden_size_cond', default=32, type=int)
     cr.add_parameter('mlp_bias', type=str, default="false")
     cr.add_parameter('affine_scale', type=str, default="false")

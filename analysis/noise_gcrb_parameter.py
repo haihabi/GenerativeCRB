@@ -43,11 +43,15 @@ if __name__ == '__main__':
     k = 0
     color_swip = False
 
-    width_array = [2, 8, 16, 24, 30]
+    # width_array = [2, 8, 16, 24, 30]
     cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
-    iso_array = [100, 400, 800, 1600, 3200]
-    cam_array = [0, 1, 2, 3, 4]
+    # iso_array = [100, 400, 800, 1600, 3200]
+    # cam_array = [0, 1, 2, 3, 4]
+    cam_array = [2]
+    iso_array = [1600]
+    width_array = [16]
     results = {}
+
     for cam in cam_array:
         results_iso = {}
         for iso in iso_array:
@@ -68,7 +72,7 @@ if __name__ == '__main__':
                     gfim = gcrb.adaptive_sampling_gfim(sample_function, theta_vector.reshape([-1, 1]),
                                                        batch_size=batch_size,
                                                        n_max=64000)
-                    psnr = 10 * torch.log(torch.linalg.inv(gfim).diagonal().mean()) / np.log(10)
+                    psnr = torch.linalg.inv(gfim).diagonal().mean()
                     _results_croos_points.append(psnr.item())
                     print(psnr)
 
@@ -78,6 +82,6 @@ if __name__ == '__main__':
 
     import pickle
 
-    file_name = "results_edge" if not color_swip else "results_edge_swip"
+    file_name = "new_results_edge" if not color_swip else "new_results_edge_swip"
     with open(f"{file_name}.pickle", "wb") as file:
         pickle.dump(results, file)

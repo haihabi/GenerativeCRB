@@ -9,10 +9,11 @@ import gcrb
 
 iso_list = [100, 400, 800, 1600, 3200]
 cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
+cross_point_array = [1]
 cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
 index2cam = {v: k for k, v in cam_dict.items()}
-color_swip = True
-with open("results_edge_swip.pickle", "rb") as file:
+color_swip = False
+with open("/data/projects/GenerativeCRB/analysis/new_results_edge.pickle", "rb") as file:
     data = pickle.load(file)
 import constants
 
@@ -30,8 +31,12 @@ trained_alpha = True
 flow = generate_nlf_flow(input_shape, trained_alpha, noise_only=False)
 parameter_nlf = torch.load("/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_nlf_best.pt",
                            map_location="cpu")
+parameter_nlf = torch.load("/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_gaussian_best.pt",
+                           map_location="cpu")
 flow.flow.flows[1].alpha.data = parameter_nlf["flow.flows.0.alpha"]
 flow.flow.flows[1].delta.data = parameter_nlf["flow.flows.0.delta"]
+print(flow.flow.flows[1].alpha)
+flow = flow.to(constants.DEVICE)
 eig = EdgeImageGenerator(patch_size)
 generate_image = eig.get_image_function(edge_width, color_swip)
 
@@ -42,7 +47,9 @@ def image2vector(in_image):
 
 def sample_function(in_batch_size, in_theta):
     bayer_img = generate_image(in_theta)
-    in_cond_vector = [image2vector(bayer_img), iso, cam]
+    in_cond_vector = [image2vector(bayer_img),
+                      torch.tensor(iso, device=constants.DEVICE).long().reshape([-1]).repeat([in_batch_size]),
+                      torch.tensor(cam, device=constants.DEVICE).long().reshape([-1]).repeat([in_batch_size])]
     return flow.sample_nll(in_batch_size, cond=in_cond_vector).reshape([-1, 1])
 
 
@@ -53,7 +60,20 @@ for cross_point in cross_point_array:
     gfim = gcrb.adaptive_sampling_gfim(sample_function, theta_vector.reshape([-1, 1]),
                                        batch_size=batch_size,
                                        n_max=64000)
-    print("a")
+    _results_croos_points.append(1 / gfim.cpu().detach().numpy().flatten())
+print("a")
+
+print(10 * np.log10(np.asarray(_results_croos_points).flatten()), 10 * np.log10(np.asarray(gcrb_db[:1]).flatten()))
+# plt.plot(cross_point_array, 10 * np.log10(np.asarray(_results_croos_points).flatten()), label="NLF Noise")
+#
+# plt.plot(cross_point_array, 10 * np.log10(np.asarray(gcrb_db).flatten()), label="GCRB")
+# plt.grid()
+#
+# plt.legend()
+# plt.xlabel("Edge Position")
+# plt.ylabel("MSE[dB]")
+# plt.show()
+
 # parameter_gaussian = torch.load("/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_gaussian.pt",
 #                                 map_location="cpu")
 # sigma_var = parameter_gaussian["flow.flows.0.delta"].cpu().numpy()
@@ -87,38 +107,26 @@ for cross_point in cross_point_array:
 # # x0 = np.asarray([0.1, 1e-4])
 # # res_nlf = least_squares(residual_function_nlf, x0, bounds=(1e-6, np.inf))
 # # print(res_nlf)
-res_nlf_alpha = alpha_var[iso_index, device]
-# res_nlf_alpha = 2.25816115e-02
-res_nlf_delta = delta_var[iso_index, device]
-print(res_nlf_delta, res_nlf_alpha)
+# res_nlf_alpha = flow.flow.flows[1].alpha.cpu().detach().numpy()[iso_index, cam]
+# # res_nlf_alpha = 2.25816115e-02
+# res_nlf_delta = flow.flow.flows[1].delta.cpu().detach().numpy()[iso_index, cam]
+# print(res_nlf_delta, res_nlf_alpha)
 # res_nlf_delta = 5.55012599e-05
 # x0 = 1e-4
 # res_gaussian = least_squares(residual_function_gaussian, x0, bounds=(1e-6, np.inf))
 # print(res_gaussian)
-std_g = np.array([[0.04474904, 0.02932946, 0.03030572, 0.02605926, 0.],
-                  [0.02963125, 0.02126121, 0.05687612, 0.06298191, 0.03050465],
-                  [0.05892951, 0.03158211, 0.09212589, 0.10110627, 0.23274043],
-                  [0.02439415, 0.02525071, 0.05441846, 0.06251305, 0.10548679],
-                  [0.02644052, 0.03422556, 0.03171875, 0., 0.]])
-res_gaussian_delta = std_g[device, iso_index]
-print(res_gaussian_delta)
+# std_g = np.array([[0.04474904, 0.02932946, 0.03030572, 0.02605926, 0.],
+#                   [0.02963125, 0.02126121, 0.05687612, 0.06298191, 0.03050465],
+#                   [0.05892951, 0.03158211, 0.09212589, 0.10110627, 0.23274043],
+#                   [0.02439415, 0.02525071, 0.05441846, 0.06251305, 0.10548679],
+#                   [0.02644052, 0.03422556, 0.03171875, 0., 0.]])
+# res_gaussian_delta = std_g[device, iso_index]
+# print(res_gaussian_delta)
 # res_gaussian_delta = 0.00829678
 
-plt.plot(cross_point_array,
-         10 * np.log10(
-             np.asarray(
-                 [crb_func(edge_position, res_nlf_alpha, res_nlf_delta) / 4096 for edge_position in
-                  cross_point_array]).flatten()),
-         label="NLF Noise")
 # plt.plot(cross_point_array,
 #          10 * np.log10(
 #              np.asarray(
-#                  [crb_func(edge_position, 0.0, res_gaussian_delta) for edge_position in cross_point_array]).flatten()),
-#          label="Gaussian Noise")
-plt.plot(cross_point_array, np.asarray(gcrb_db).flatten(), label="GCRB")
-plt.grid()
-
-plt.legend()
-plt.xlabel("Edge Position")
-plt.ylabel("MSE[dB]")
-plt.show()
+#                  [crb_func(edge_position, res_nlf_alpha, res_nlf_delta) for edge_position in
+#                   cross_point_array]).flatten()),
+#          label="NLF Noise 1")
