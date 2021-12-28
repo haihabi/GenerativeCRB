@@ -16,4 +16,5 @@
 # tsp python main.py --model_type Linear --sigma_n 2 --spline_flow false --theta_dim 2 --nf_lr 0.0005 --n_epochs_flow 190  --dataset_size 140000 --n_layer_cond 1 --dim 8 --theta_min -2 --theta_max 2 --hidden_size_cond 14 --n_flow_blocks 1
 # tsp python main.py --model_type Linear --sigma_n 2 --spline_flow false --theta_dim 2 --nf_lr 0.0005 --n_epochs_flow 165  --dataset_size 160000 --n_layer_cond 1 --dim 8 --theta_min -2 --theta_max 2 --hidden_size_cond 14 --n_flow_blocks 1
 # tsp python main.py --model_type Linear --sigma_n 2 --spline_flow false --theta_dim 2 --nf_lr 0.0005 --n_epochs_flow 145  --dataset_size 180000 --n_layer_cond 1 --dim 8 --theta_min -2 --theta_max 2 --hidden_size_cond 14 --n_flow_blocks 1
-python main.py --model_type Linear --sigma_n 2 --spline_flow false --theta_dim 2 --nf_lr 0.0001 --n_epochs_flow 20 --dataset_size 200000 --n_layer_cond 1 --dim 8 --theta_min -2 --theta_max 2 --hidden_size_cond 14 --n_flow_blocks 1
+python main.py --model_type Linear --sigma_n 2 --spline_flow false --theta_dim 2 --nf_lr 0.00005 --n_epochs_flow 20 --dataset_size 200000 --n_layer_cond 1 --dim 8 --theta_min -2 --theta_max 2 --hidden_size_cond 14 --n_flow_blocks 1
+
