@@ -46,7 +46,7 @@ if __name__ == '__main__':
     crb = np.linalg.inv(fim)
     _results_iteration = []
     eps_list = [0.1, 0.05, 0.01, 0.005]
-    n_samples = [32e3, 64e3, 128e3, 256e3]
+    n_samples = [64e3, 128e3, 256e3, 512e3]
     for i in tqdm(range(n_iter)):
         res_eps = []
         for m in n_samples:
@@ -62,10 +62,10 @@ if __name__ == '__main__':
 
     count_max = 0
     color_list = ["red", "green", "orange", "blue"]
-    for i, eps in enumerate(eps_list):
+    for i, m in enumerate(n_samples):
         count, bins = np.histogram(results_array[:, i], density=True, bins=20)
         count_max = max(count_max, np.max(count))
-        plt.plot(bins[:-1], count, "--", label=r"$\epsilon=$" + f"{eps}", color=color_list[i])
+        plt.plot(bins[:-1], count, "--", label=r"$m=$" + f"{int(m/1000)}k", color=color_list[i])
 
     plt.ylabel("PDF")
     plt.xlabel(r"$\mathrm{RE}(\theta)$")

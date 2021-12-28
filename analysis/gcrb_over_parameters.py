@@ -7,7 +7,8 @@ if __name__ == '__main__':
     # run_name = "decent-disco-350"  # Scale  Model
     # run_name = "toasty-sweep-79"  # Linear Model
     # run_name = "youthful-haze-1350"  # Linear Model
-    run_name = "serene-dawn-1395"  # Linear Model
+    run_name = "fancy-dream-1438"  # Linear Model
+    run_name = "feasible-vortex-1480"  # Linear Model
     common.set_seed(0)
     # theta_scale_min = 0.9
     # theta_scale_max = 0.9

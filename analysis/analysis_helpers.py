@@ -36,7 +36,9 @@ def load_wandb_run(run_name):
                                              n_layer_cond=config["n_layer_cond"],
                                              hidden_size_cond=config["hidden_size_cond"],
                                              bias=config["mlp_bias"],
-                                             affine_scale=config["affine_scale"])
+                                             affine_scale=config["affine_scale"],
+                                             spline_k=config.get("spline_k", 8),
+                                             spline_b=config.get("spline_b", 3))
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
             model_flow = model_flow.to(constants.DEVICE).eval()
             for flow in model_flow.flow.flows:
