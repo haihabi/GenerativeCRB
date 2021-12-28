@@ -9,18 +9,18 @@ import gcrb
 
 iso_list = [100, 400, 800, 1600, 3200]
 cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
-cross_point_array = [1]
+# cross_point_array = [1]
 cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
 index2cam = {v: k for k, v in cam_dict.items()}
 color_swip = False
-with open("/data/projects/GenerativeCRB/analysis/new_results_edge.pickle", "rb") as file:
+with open("/data/projects/GenerativeCRB/analysis/edge_bound/results_edge.pickle", "rb") as file:
     data = pickle.load(file)
 import constants
 
 iso = 1600
 iso_index = iso_list.index(iso)
 cam = 2
-edge_width = 16
+edge_width = 8
 print(f"Comparing CRB using Device:{index2cam[cam]} with ISO {iso} and Edge Width:{edge_width}")
 
 gcrb_db = data[cam][iso][edge_width]
@@ -63,16 +63,16 @@ for cross_point in cross_point_array:
     _results_croos_points.append(1 / gfim.cpu().detach().numpy().flatten())
 print("a")
 
-print(10 * np.log10(np.asarray(_results_croos_points).flatten()), 10 * np.log10(np.asarray(gcrb_db[:1]).flatten()))
-# plt.plot(cross_point_array, 10 * np.log10(np.asarray(_results_croos_points).flatten()), label="NLF Noise")
-#
-# plt.plot(cross_point_array, 10 * np.log10(np.asarray(gcrb_db).flatten()), label="GCRB")
-# plt.grid()
-#
-# plt.legend()
-# plt.xlabel("Edge Position")
-# plt.ylabel("MSE[dB]")
-# plt.show()
+print(10 * np.log10(np.asarray(_results_croos_points).flatten()), 10 * np.log10(np.asarray(gcrb_db).flatten()))
+plt.plot(cross_point_array, 10 * np.log10(np.asarray(_results_croos_points).flatten()), label="NLF Noise")
+
+plt.plot(cross_point_array, np.asarray(gcrb_db).flatten(), label="GCRB")
+plt.grid()
+
+plt.legend()
+plt.xlabel("Edge Position")
+plt.ylabel("MSE[dB]")
+plt.show()
 
 # parameter_gaussian = torch.load("/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_gaussian.pt",
 #                                 map_location="cpu")

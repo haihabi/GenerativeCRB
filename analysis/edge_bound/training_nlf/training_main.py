@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     lr = 1e-4
     patch_size = 32
-    n_epochs = 150
+    n_epochs = 5
     n_iter_per_epoch = 1000
     input_shape = [4, patch_size, patch_size]
     trained_alpha = False
@@ -73,8 +73,10 @@ if __name__ == '__main__':
     for n in range(n_epochs):
         loss_list = []
         if train_dataset:
-            for noise, clean, cam, iso in nds_dl:
+            for noise, clean, cam, iso in tqdm(nds_dl):
                 noise, clean, cam, iso = noise.cuda(), clean.cuda(), cam.long().cuda(), iso.cuda()
+                clean = torch.permute(clean, (0, 3, 1, 2)).float()
+                noise = torch.permute(noise, (0, 3, 1, 2)).float()
                 cond_vector = [clean, iso, cam]
                 train_step(noise, cond_vector)
         else:

@@ -24,7 +24,7 @@ def config():
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)
-
+    cr.add_parameter('m', default=128000, type=int)
     #############################################
     # Model Config
     #############################################
@@ -188,7 +188,7 @@ if __name__ == '__main__':
                                                               enable_lr_scheduler=run_parameters.enable_lr_scheduler,
                                                               scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
     check_training = common.generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
-                                                              logging=False)
+                                                              logging=False, m=run_parameters.m)
     # ema = common.ExponentialMovingAverage(flow_model.parameters(), decay=0.9)
     # ema.copy_to(ema_flow_model.parameters())
     best_flow_model, flow_model = normalizing_flow_training(flow_model, training_dataset_loader,
@@ -205,5 +205,6 @@ if __name__ == '__main__':
 
     check_final = common.generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
                                                            logging=True,
-                                                           n_validation_point=run_parameters.n_validation_point)
+                                                           n_validation_point=run_parameters.n_validation_point,
+                                                           m=run_parameters.m)
     check_final(best_flow_model)  # Check Best Flow
