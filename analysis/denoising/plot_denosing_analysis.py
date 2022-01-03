@@ -42,10 +42,12 @@ for i in range(1):  # Device Loop
         plt.ylabel("MSE[dB]")
 plt.show()
 
+sencrio_list = ["003", "007", "010"]
+sencrio_list = ["003"]
 for i in range(5):  # Device Loop
     # plt.subplot(2,1,1)
-    for j, sen in enumerate(["003", "007", "010"]):
-        plt.subplot(1, 3, 1 + j)
+    for j, sen in enumerate(sencrio_list):
+        plt.subplot(1, len(sencrio_list), 1 + j)
         iso_list = []
         results = []
         for iso, v in data[sen].items():
@@ -57,7 +59,8 @@ for i in range(5):  # Device Loop
         plt.legend()
         plt.xlabel("ISO Level")
         plt.ylabel("NMSE[dB]")
-        plt.title(f"Scenario: {j + 1}")
+        if len(sencrio_list) > 1:
+            plt.title(f"Scenario: {j + 1}")
 plt.show()
 
 results_type = ["Relative_RMSE_R", "Relative_RMSE_G1", "Relative_RMSE_G2", "Relative_RMSE_B"]

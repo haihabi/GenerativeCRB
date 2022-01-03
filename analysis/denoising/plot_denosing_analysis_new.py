@@ -6,15 +6,17 @@ iso_list = [100, 400, 800, 1600, 3200]
 cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
 index2cam = {v: k for k, v in cam_dict.items()}
 
-with open("results_new.pickle", "rb") as file:
+with open("results.pickle", "rb") as file:
     data = pickle.load(file)
 print("a")
 n_device = 4
-scenraios_list = ["001", "002", "003"]
-d = data['001']
-for device in range(4):
+scenraios_list = ["003", "007", "010"]
+d = data['003']
+for device in range(5):
     plt.plot(iso_list, [d[iso][device]['Relative_RMSE'] for iso in iso_list], label=f"Device {index2cam[device]}")
 plt.grid()
+plt.xlabel("ISO Level")
+plt.ylabel("NMSE[dB]")
 plt.legend()
 plt.show()
 

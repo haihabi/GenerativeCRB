@@ -50,7 +50,7 @@ if __name__ == '__main__':
     n_epochs = 5
     n_iter_per_epoch = 1000
     input_shape = [4, patch_size, patch_size]
-    trained_alpha = False
+    trained_alpha = True
     flow = generate_nlf_flow(input_shape, trained_alpha)
     opt = torch.optim.Adam(flow.parameters(), lr=lr)
     train_dataset = True

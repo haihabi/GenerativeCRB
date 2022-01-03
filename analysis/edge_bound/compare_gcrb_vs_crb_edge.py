@@ -1,132 +1,83 @@
 import numpy as np
-from matplotlib import pyplot as plt
 import pickle
-from analysis.edge_bound.nlf_crb import get_crb_function
-from analysis.edge_bound.edge_image_generator import EdgeImageGenerator
+import gcrb
+import constants
 import torch
 from training_nlf.training_main import generate_nlf_flow
-import gcrb
-
-iso_list = [100, 400, 800, 1600, 3200]
-cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
-# cross_point_array = [1]
-cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
-index2cam = {v: k for k, v in cam_dict.items()}
-color_swip = False
-with open("/data/projects/GenerativeCRB/analysis/edge_bound/results_edge.pickle", "rb") as file:
-    data = pickle.load(file)
-import constants
-
-iso = 1600
-iso_index = iso_list.index(iso)
-cam = 2
-edge_width = 8
-print(f"Comparing CRB using Device:{index2cam[cam]} with ISO {iso} and Edge Width:{edge_width}")
-
-gcrb_db = data[cam][iso][edge_width]
-crb_func = get_crb_function(edge_width)
-patch_size = 32
-input_shape = [4, patch_size, patch_size]
-trained_alpha = True
-flow = generate_nlf_flow(input_shape, trained_alpha, noise_only=False)
-parameter_nlf = torch.load("/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_nlf_best.pt",
-                           map_location="cpu")
-parameter_nlf = torch.load("/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_gaussian_best.pt",
-                           map_location="cpu")
-flow.flow.flows[1].alpha.data = parameter_nlf["flow.flows.0.alpha"]
-flow.flow.flows[1].delta.data = parameter_nlf["flow.flows.0.delta"]
-print(flow.flow.flows[1].alpha)
-flow = flow.to(constants.DEVICE)
-eig = EdgeImageGenerator(patch_size)
-generate_image = eig.get_image_function(edge_width, color_swip)
+from analysis.edge_bound.edge_image_generator import EdgeImageGenerator
+from matplotlib import pyplot as plt
 
 
 def image2vector(in_image):
     return torch.permute(in_image, (0, 3, 1, 2))
 
 
-def sample_function(in_batch_size, in_theta):
-    bayer_img = generate_image(in_theta)
-    in_cond_vector = [image2vector(bayer_img),
-                      torch.tensor(iso, device=constants.DEVICE).long().reshape([-1]).repeat([in_batch_size]),
-                      torch.tensor(cam, device=constants.DEVICE).long().reshape([-1]).repeat([in_batch_size])]
-    return flow.sample_nll(in_batch_size, cond=in_cond_vector).reshape([-1, 1])
+def load_nlf_flow(in_input_shape, in_generate_image, model_parameter_path, in_iso, in_cam):
+    flow = generate_nlf_flow(in_input_shape, True, noise_only=False)
+    parameter_nlf = torch.load(model_parameter_path,
+                               map_location="cpu")
+    flow.flow.flows[1].alpha.data = parameter_nlf["flow.flows.0.alpha"]
+    flow.flow.flows[1].delta.data = parameter_nlf["flow.flows.0.delta"]
+    print(flow.flow.flows[1].alpha.data)
+    print(flow.flow.flows[1].delta.data)
+    flow = flow.to(constants.DEVICE)
+
+    def sample_function(in_batch_size, in_theta):
+        bayer_img = in_generate_image(in_theta)
+        in_cond_vector = [image2vector(bayer_img),
+                          torch.tensor(in_iso, device=constants.DEVICE).long().reshape([-1]).repeat([in_batch_size]),
+                          torch.tensor(in_cam, device=constants.DEVICE).long().reshape([-1]).repeat([in_batch_size])]
+        return flow.sample_nll(in_batch_size, cond=in_cond_vector).reshape([-1, 1])
+
+    return sample_function
 
 
-batch_size = 32
-_results_croos_points = []
-for cross_point in cross_point_array:
-    theta_vector = cross_point * torch.ones(batch_size, requires_grad=True).to(constants.DEVICE)
-    gfim = gcrb.adaptive_sampling_gfim(sample_function, theta_vector.reshape([-1, 1]),
-                                       batch_size=batch_size,
-                                       n_max=64000)
-    _results_croos_points.append(1 / gfim.cpu().detach().numpy().flatten())
-print("a")
+def loop_gcrb_cross_point(in_batch_size, in_sample_function, in_cross_point_array):
+    results_croos_points_gaussian = []
+    for cross_point in in_cross_point_array:
+        theta_vector = cross_point * torch.ones(in_batch_size, requires_grad=True).to(constants.DEVICE)
+        gfim = gcrb.sampling_gfim(in_sample_function, theta_vector.reshape([-1, 1]),
+                                  batch_size=in_batch_size,
+                                  m=64000)
+        results_croos_points_gaussian.append(1 / gfim.cpu().detach().numpy().flatten())
+    return 10 * np.log10(np.asarray(results_croos_points_gaussian).flatten())
 
-print(10 * np.log10(np.asarray(_results_croos_points).flatten()), 10 * np.log10(np.asarray(gcrb_db).flatten()))
-plt.plot(cross_point_array, 10 * np.log10(np.asarray(_results_croos_points).flatten()), label="NLF Noise")
 
-plt.plot(cross_point_array, np.asarray(gcrb_db).flatten(), label="GCRB")
-plt.grid()
+if __name__ == '__main__':
+    cam = 2
+    edge_width = 8
+    iso = 100
+    patch_size = 32
+    batch_size = 32
+    color_swip = False
 
-plt.legend()
-plt.xlabel("Edge Position")
-plt.ylabel("MSE[dB]")
-plt.show()
+    model_path_gaussian = "/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_gaussian_best.pt"
+    model_path_nlf = "/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_nlf_best.pt"
+    iso_list = [100, 400, 800, 1600, 3200]
+    cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
+    input_shape = [4, patch_size, patch_size]
+    cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
+    index2cam = {v: k for k, v in cam_dict.items()}
 
-# parameter_gaussian = torch.load("/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_gaussian.pt",
-#                                 map_location="cpu")
-# sigma_var = parameter_gaussian["flow.flows.0.delta"].cpu().numpy()
+    with open("/data/projects/GenerativeCRB/analysis/edge_bound/results_edge.pickle", "rb") as file:
+        data = pickle.load(file)
 
-# parameter_nlf = torch.load("/data/projects/GenerativeCRB/analysis/edge_bound/training_nlf/flow_nlf_best.pt",
-#                            map_location="cpu")
+    print(f"Comparing CRB using Device:{index2cam[cam]} with ISO {iso} and Edge Width:{edge_width}")
 
-# alpha_var = parameter_nlf["flow.flows.0.alpha"].cpu().numpy()
-# delta_var = parameter_nlf["flow.flows.0.delta"].cpu().numpy()
-#
-# print("a")
-#
-# # delta = 0.1
-#
-#
-# # def residual_function_nlf(in_array):
-# #     alpha, delta = in_array[0], in_array[1]
-# #     a = np.asarray(gcrb_db).flatten() - 10 * np.log10(np.asarray(
-# #         [crb_func(edge_position, alpha, delta) for edge_position in cross_point_array]).flatten())
-# #     return a
-# #
-# #
-# # def residual_function_gaussian(in_array):
-# #     delta = in_array
-# #     a = np.asarray(gcrb_db).flatten() - 10 * np.log10(np.asarray(
-# #         [crb_func(edge_position, 0, delta) for edge_position in cross_point_array]).flatten())
-# #     return a
-#
-# import math
-#
-# # x0 = np.asarray([0.1, 1e-4])
-# # res_nlf = least_squares(residual_function_nlf, x0, bounds=(1e-6, np.inf))
-# # print(res_nlf)
-# res_nlf_alpha = flow.flow.flows[1].alpha.cpu().detach().numpy()[iso_index, cam]
-# # res_nlf_alpha = 2.25816115e-02
-# res_nlf_delta = flow.flow.flows[1].delta.cpu().detach().numpy()[iso_index, cam]
-# print(res_nlf_delta, res_nlf_alpha)
-# res_nlf_delta = 5.55012599e-05
-# x0 = 1e-4
-# res_gaussian = least_squares(residual_function_gaussian, x0, bounds=(1e-6, np.inf))
-# print(res_gaussian)
-# std_g = np.array([[0.04474904, 0.02932946, 0.03030572, 0.02605926, 0.],
-#                   [0.02963125, 0.02126121, 0.05687612, 0.06298191, 0.03050465],
-#                   [0.05892951, 0.03158211, 0.09212589, 0.10110627, 0.23274043],
-#                   [0.02439415, 0.02525071, 0.05441846, 0.06251305, 0.10548679],
-#                   [0.02644052, 0.03422556, 0.03171875, 0., 0.]])
-# res_gaussian_delta = std_g[device, iso_index]
-# print(res_gaussian_delta)
-# res_gaussian_delta = 0.00829678
+    gcrb_db = data[cam][iso][edge_width]
+    eig = EdgeImageGenerator(patch_size)
+    generate_image = eig.get_image_function(edge_width, color_swip)
+    flow_gaussian_sample_func = load_nlf_flow(input_shape, generate_image, model_path_gaussian, iso, cam)
+    results_gaussian = loop_gcrb_cross_point(batch_size, flow_gaussian_sample_func, cross_point_array)
 
-# plt.plot(cross_point_array,
-#          10 * np.log10(
-#              np.asarray(
-#                  [crb_func(edge_position, res_nlf_alpha, res_nlf_delta) for edge_position in
-#                   cross_point_array]).flatten()),
-#          label="NLF Noise 1")
+    flow_nlf_sample_func = load_nlf_flow(input_shape, generate_image, model_path_nlf, iso, cam)
+    results_nlf = loop_gcrb_cross_point(batch_size, flow_nlf_sample_func, cross_point_array)
+
+    plt.plot(cross_point_array, results_gaussian, label="Gaussian")
+    plt.plot(cross_point_array, results_nlf, label="NLF")
+    plt.plot(cross_point_array, np.asarray(gcrb_db).flatten(), label="GCRB")
+    plt.grid()
+    plt.legend()
+    plt.xlabel("Edge Position")
+    plt.ylabel("MSE[dB]")
+    plt.show()
