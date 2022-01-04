@@ -1,13 +1,7 @@
 import torch
-
+import constants
 import normflowpy as nfp
 from torch import nn
-
-ISO2INDEX = {100: 0,
-             400: 1,
-             800: 2,
-             1600: 3,
-             3200: 4}
 
 
 class NoiseLevelFunction(nfp.ConditionalBaseFlowLayer):
@@ -18,7 +12,7 @@ class NoiseLevelFunction(nfp.ConditionalBaseFlowLayer):
         self.delta = nn.Parameter(torch.ones(m_iso, n_cam))
 
     def _build_scale(self, clean_image, iso, cam):
-        iso_index = [ISO2INDEX[i.item()] for i in iso]
+        iso_index = [constants.ISO2INDEX[i.item()] for i in iso]
         beta1 = torch.pow(self.alpha[iso_index, cam], 2.0).reshape([-1, 1, 1, 1])
         beta2 = torch.pow(self.delta[iso_index, cam], 2.0).reshape([-1, 1, 1, 1])
         return torch.sqrt(beta1 * clean_image + beta2)

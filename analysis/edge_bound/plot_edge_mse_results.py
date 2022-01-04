@@ -10,11 +10,6 @@ index2cam = {v: k for k, v in cam_dict.items()}
 with open("./results_edge_swip.pickle", "rb") as file:
     data = pickle.load(file)
 
-print("a")
-
-# for device in range(5):
-#     for k, iso in enumerate(iso_list):
-#         plt.subplot(5, 5, 1 + device + k * 5)
 device = 0
 iso = 100
 ax = plt.subplot(111)

@@ -19,7 +19,7 @@ def generate_nlf_flow(in_input_shape, in_trained_alpha, noise_only=True):
     if not noise_only:
         flows.append(ImageFlowStep())
     flows.extend([NoiseLevelFunction(trained_alpha=in_trained_alpha), nfp.flows.Tensor2Vector(in_input_shape)])
-    return nfp.NormalizingFlowModel(prior, flows).cuda()
+    return nfp.NormalizingFlowModel(prior, flows).to(constants.DEVICE)
 
 
 def sample_input_model():

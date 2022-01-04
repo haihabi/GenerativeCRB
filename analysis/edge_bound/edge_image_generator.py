@@ -20,13 +20,27 @@ class EdgeImageGenerator(object):
         def generate_image(in_theta):
             in_theta = in_theta.reshape([in_theta.shape[0], 1, 1, 1])
             p = torch.sigmoid((in_theta - self.x_array) / edge_width)
-            if color_swip:
-                alpha = self.c_a - self.c_b
-                i_x = alpha * p + self.c_b
-            else:
-                alpha = self.c_b - self.c_a
-                i_x = alpha * p + self.c_a
+            p_h, p_l = self.get_pixel_color(color_swip)
+            alpha = p_h - p_l
+            i_x = alpha * p + p_l
+            # if color_swip:
+            #     alpha = self.c_a - self.c_b
+            #     i_x = alpha * p + self.c_b
+            # else:
+            #     alpha = self.c_b - self.c_a
+            #     i_x = alpha * p + self.c_a
             i_xy = i_x.repeat([1, self.patch_size, 1, 1])
             return i_xy
 
         return generate_image
+
+    def get_pixel_color(self, color_swip):
+
+        if color_swip:
+            p_low = self.c_b
+            p_high = self.c_a
+
+        else:
+            p_low = self.c_a
+            p_high = self.c_b
+        return p_high, p_low

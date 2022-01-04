@@ -77,15 +77,15 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupl
             nfp.flows.InvertibleFullyConnected(dim=dim))
 
         flows.append(
-            nfp.flows.AffineInjector(dim=dim,
-                                     net_class=nfp.base_nets.generate_mlp_class(hidden_size_cond, n_layer=n_layer_cond,
+            nfp.flows.AffineInjector(x_shape=[dim],
+                                     condition_vector_size=condition_embedding_size, n_hidden=hidden_size_cond,
+                                     net_class=nfp.base_nets.generate_mlp_class(n_layer=n_layer_cond,
                                                                                 non_linear_function=generate_nl,
                                                                                 bias=bias),
-                                     scale=affine_scale,
-                                     condition_vector_size=condition_embedding_size))
+                                     scale=affine_scale))
         if affine_coupling:
             flows.append(
-                nfp.flows.AffineCouplingFlowVector(dim=dim, parity=i % 2, scale=affine_scale))
+                nfp.flows.AffineCoupling(x_shape=[dim], parity=i % 2, net_class=nfp.base_nets.generate_mlp_class()))
         if spline_flow:
             flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b))
 
