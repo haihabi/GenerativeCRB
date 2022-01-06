@@ -23,12 +23,6 @@ class EdgeImageGenerator(object):
             p_h, p_l = self.get_pixel_color(color_swip)
             alpha = p_h - p_l
             i_x = alpha * p + p_l
-            # if color_swip:
-            #     alpha = self.c_a - self.c_b
-            #     i_x = alpha * p + self.c_b
-            # else:
-            #     alpha = self.c_b - self.c_a
-            #     i_x = alpha * p + self.c_a
             i_xy = i_x.repeat([1, self.patch_size, 1, 1])
             return i_xy
 

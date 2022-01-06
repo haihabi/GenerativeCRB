@@ -1,11 +1,51 @@
 import numpy as np
-from main import generate_flow_model
 import wandb
 import os
 import constants
 import torch
 import data_model
 import normflowpy as nfp
+import pickle
+from sidd.pipeline import process_sidd_image
+from main import generate_flow_model
+
+META_FILE = "metadata_edge.pickle"
+
+with open(os.path.join(os.path.dirname(__file__), META_FILE), "rb") as f:
+    bayer_2by2, wb, cst2 = pickle.load(f)
+
+
+def unpack_raw(raw4ch):
+    """Unpacks 4 channels to Bayer image (h/2, w/2, 4) --> (h, w)."""
+    img_shape = raw4ch.shape
+    h = img_shape[0]
+    w = img_shape[1]
+    # d = img_shape[2]
+    bayer = np.zeros([h * 2, w * 2], dtype=np.float32)
+    # bayer = raw4ch
+    # bayer.reshape((h * 2, w * 2))
+    bayer[0::2, 0::2] = raw4ch[:, :, 0]
+    bayer[0::2, 1::2] = raw4ch[:, :, 1]
+    bayer[1::2, 1::2] = raw4ch[:, :, 2]
+    bayer[1::2, 0::2] = raw4ch[:, :, 3]
+    return bayer
+
+
+def image_channel_swipe_nhwc2nchw(in_image):
+    return torch.permute(in_image, (0, 3, 1, 2))
+
+
+def image_channel_swipe_nchw2nhwc(in_image):
+    return torch.permute(in_image, (0, 2, 3, 1))
+
+
+def image_shape(patch_size):
+    return [4, patch_size, patch_size]
+
+
+def rggb2rgb(in_image):
+    image_srgb = process_sidd_image(unpack_raw(in_image), bayer_2by2, wb, cst2)
+    return image_srgb.astype('int')
 
 
 def get_data_model(in_config):

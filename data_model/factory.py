@@ -6,7 +6,6 @@ from data_model.linear_example import LinearModel
 from data_model.mean_example import MeanModel
 from data_model.gaussian_variance import GaussianVarianceDataModel
 from data_model.frequency_estimation_example import FrequencyModel
-# from data_model.doa import DOAModel
 from enum import Enum
 
 
