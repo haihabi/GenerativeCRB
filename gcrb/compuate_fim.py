@@ -1,6 +1,6 @@
 import torch
 import torch.autograd as autograd
-import constants
+from experiments import constants
 import normflowpy as nf
 
 

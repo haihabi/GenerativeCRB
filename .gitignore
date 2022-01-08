@@ -131,4 +131,4 @@ dmypy.json
 logs/
 datasets/
 .idea/
-analysis/flow_best.pt
+experiments/analysis/flow_best.pt

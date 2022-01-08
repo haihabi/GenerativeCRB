@@ -2,8 +2,7 @@ import unittest
 import torch
 import data_model as dm
 import normflowpy as nf
-import constants
-
+from experiments import constants
 
 
 def generate_model_dict():

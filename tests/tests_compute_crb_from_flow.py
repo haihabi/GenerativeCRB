@@ -3,11 +3,11 @@ import unittest
 import numpy as np
 import torch
 
-from data_model.linear_example import LinearModel
+from experiments.data_model.linear_example import LinearModel
 from data_model.pow_1_3_gaussian_variance import Pow1Div3Gaussian
 from data_model.gaussian_variance import GaussianVarianceDataModel
 import normflowpy as nf
-import constants
+from experiments import constants
 import gcrb
 from torch.distributions import MultivariateNormal
 
