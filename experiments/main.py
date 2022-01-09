@@ -1,15 +1,15 @@
 import torch
 from experiments import common
 from experiments import data_model
-from experiments import neural_network, constants
+from experiments import constants
 
-import normflowpy as nfp
-from torch.distributions import MultivariateNormal
-from torch import nn
 import os
 import pickle
 import wandb
-from experiments.neural_network.nf_training import normalizing_flow_training
+from experiments.experiment_training.nf_training import normalizing_flow_training
+from experiments.models_architecture.simple_normalzing_flow import generate_flow_model
+from experiments.experiment_training.single_network_optimization import SingleNetworkOptimization, OptimizerType
+from experiments.analysis.bound_validation import generate_gcrb_validation_function
 
 
 def config():
@@ -59,39 +59,6 @@ def config():
     cr.add_parameter('affine_coupling', type=str, default="false")
     cr.add_parameter('enable_lr_scheduler', type=str, default="false")
     return cr
-
-
-def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupling, n_layer_cond=4,
-                        hidden_size_cond=24, spline_b=3,
-                        spline_k=8, bias=True, affine_scale=True):
-    flows = []
-    condition_embedding_size = theta_dim
-
-    def generate_nl():
-        return nn.SiLU()
-
-    for i in range(n_flow_blocks):
-        flows.append(nfp.flows.ActNorm(dim=dim))
-        flows.append(
-            nfp.flows.InvertibleFullyConnected(dim=dim))
-
-        flows.append(
-            nfp.flows.AffineInjector(x_shape=[dim],
-                                     condition_vector_size=condition_embedding_size, n_hidden=hidden_size_cond,
-                                     net_class=nfp.base_nets.generate_mlp_class(n_layer=n_layer_cond,
-                                                                                non_linear_function=generate_nl,
-                                                                                bias=bias),
-                                     scale=affine_scale))
-        if affine_coupling:
-            flows.append(
-                nfp.flows.AffineCoupling(x_shape=[dim], parity=i % 2, net_class=nfp.base_nets.generate_mlp_class()))
-        if spline_flow:
-            flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b))
-
-    return nfp.NormalizingFlowModel(MultivariateNormal(torch.zeros(dim, device=constants.DEVICE),
-                                                       torch.eye(dim, device=constants.DEVICE)), flows,
-                                    condition_network=None).to(
-        constants.DEVICE)
 
 
 def generate_model_parameter_dict(in_param) -> dict:
@@ -172,38 +139,28 @@ if __name__ == '__main__':
                                      spline_k=run_parameters.spline_k,
                                      )
 
-    # ema_flow_model = generate_flow_model(run_parameters.dim, run_parameters.theta_dim, run_parameters.n_flow_blocks,
-    #                                      run_parameters.spline_flow, run_parameters.affine_coupling,
-    #                                      n_layer_cond=run_parameters.n_layer_cond,
-    #                                      hidden_size_cond=run_parameters.hidden_size_cond,
-    #                                      bias=run_parameters.mlp_bias,
-    #                                      affine_scale=run_parameters.affine_scale
-    #                                      )
-    optimizer_flow = neural_network.SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
-                                                              lr=run_parameters.nf_lr,
-                                                              optimizer_type=neural_network.OptimizerType.Adam,
-                                                              weight_decay=run_parameters.nf_weight_decay,
-                                                              grad_norm_clipping=run_parameters.grad_norm_clipping,
-                                                              enable_lr_scheduler=run_parameters.enable_lr_scheduler,
-                                                              scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
-    check_training = common.generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
-                                                              logging=False, m=run_parameters.m)
-    # ema = common.ExponentialMovingAverage(flow_model.parameters(), decay=0.9)
-    # ema.copy_to(ema_flow_model.parameters())
+    optimizer_flow = SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
+                                               lr=run_parameters.nf_lr,
+                                               optimizer_type=OptimizerType.Adam,
+                                               weight_decay=run_parameters.nf_weight_decay,
+                                               grad_norm_clipping=run_parameters.grad_norm_clipping,
+                                               enable_lr_scheduler=run_parameters.enable_lr_scheduler,
+                                               scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
+    check_training = generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
+                                                       logging=False, m=run_parameters.m)
+
     best_flow_model, flow_model = normalizing_flow_training(flow_model, training_dataset_loader,
                                                             validation_dataset_loader,
                                                             optimizer_flow,
-                                                            check_gcrb=check_training if run_parameters.evaluation_every_step else None,
-                                                            ema=None,
-                                                            ema_flow=None)
+                                                            check_gcrb=check_training if run_parameters.evaluation_every_step else None)
     # Save Flow to Weights and Bias
     torch.save(best_flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_best.pt"))
     torch.save(flow_model.state_dict(), os.path.join(wandb.run.dir, "flow_last.pt"))
     torch.save(best_flow_model.state_dict(), os.path.join(run_log_dir, "flow_best.pt"))
     torch.save(flow_model.state_dict(), os.path.join(run_log_dir, "flow_last.pt"))
 
-    check_final = common.generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
-                                                           logging=True,
-                                                           n_validation_point=run_parameters.n_validation_point,
-                                                           m=run_parameters.m)
+    check_final = generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
+                                                    logging=True,
+                                                    n_validation_point=run_parameters.n_validation_point,
+                                                    m=run_parameters.m)
     check_final(best_flow_model)  # Check Best Flow

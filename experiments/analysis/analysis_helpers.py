@@ -81,9 +81,9 @@ def load_wandb_run(run_name):
                                              spline_b=config.get("spline_b", 3))
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
             model_flow = model_flow.to(constants.DEVICE).eval()
-            for flow in model_flow.flow.flows:
-                if isinstance(flow, nfp.flows.ActNorm):
-                    flow.data_dep_init_done = True
+            # for flow in model_flow.flow.flows:
+            #     if isinstance(flow, nfp.flows.ActNorm):
+            #         flow.data_dep_init_done = True
 
             dm, model_type = get_data_model(config)
             if model_type == data_model.ModelType.Linear:

@@ -49,19 +49,13 @@ class ConfigReader(object):
         parameters, _ = argparser.parse_known_args()
         parameters_dict = vars(parameters)
         for pname, pvalue in self.arg_dict.items():
-            if parameters.__getattribute__(pname) == pvalue and len(lcfg > 0):  # Same as defulat
-                if lcfg.get(pname) is not None:
-                    parameters_dict[pname] = lcfg.get(pname)
+            if parameters.__getattribute__(pname) == pvalue["default"] and lcfg.get(
+                    pname) is not None:  # Same as defulat
+                parameters_dict[pname] = lcfg.get(pname)
         self._handle_enums(parameters_dict)
         self._handle_boolean(parameters_dict)
         self.parameters = Namespace(**parameters_dict)
         return self.parameters
-
-    def read_parameters(self):
-        args = copy.deepcopy(self.get_user_arguments())
-        self._handle_enums(args.__dict__)
-        self._handle_boolean(args.__dict__)
-        return args
 
     def save_config(self, folder):
         args = self.get_user_arguments()
@@ -79,6 +73,4 @@ class ConfigReader(object):
             return {}
         with open(config_file, 'r') as outfile:
             cfg = json.load(outfile)
-        self._handle_enums(cfg)
-        self._handle_boolean(cfg)
         return cfg

@@ -4,3 +4,4 @@ from experiments.common.working_device import get_working_device
 from experiments.common.config_reader import ConfigReader
 from experiments.common.log_folder import generate_log_folder, get_current_file_location
 from experiments.common.tensor_helpers import change2tensor
+from experiments.common.seed import set_seed

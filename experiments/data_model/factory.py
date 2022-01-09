@@ -1,6 +1,6 @@
 from experiments import constants
 from experiments.data_model.base_mode import BaseModel
-from data_model.pow_1_3_gaussian_variance import Pow1Div3Gaussian
+from experiments.data_model.pow_1_3_gaussian_variance import Pow1Div3Gaussian
 from experiments.data_model.linear_example import LinearModel
 from enum import Enum
 
