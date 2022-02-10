@@ -1,5 +1,5 @@
 import numpy as np
-from experiments.analysis.edge_bound.edge_image_generator import EdgeImageGenerator
+from experiments.data_model.edge_position.edge_image_generator import EdgeImageGenerator
 
 
 def sigmoid(x):
@@ -11,12 +11,12 @@ def sigmoid_derivative(x):
 
 
 def calculate_edge_crb_nlf(edge_position, edge_width, alpha, delta, in_p_h, in_p_l, patch_size, color_s=False):
-    if color_s:
-        p_h = in_p_l.reshape([1, 1, -1])
-        p_l = in_p_h.reshape([1, 1, -1])
-    else:
-        p_h = in_p_h.reshape([1, 1, -1])
-        p_l = in_p_l.reshape([1, 1, -1])
+    # if color_s:
+    #     p_h = in_p_l.reshape([1, 1, -1])
+    #     p_l = in_p_h.reshape([1, 1, -1])
+    # else:
+    p_h = in_p_h.reshape([1, 1, -1])
+    p_l = in_p_l.reshape([1, 1, -1])
     x_array = np.linspace(0, patch_size - 1, patch_size).astype("float32").reshape([1, patch_size, 1])
     x_delta = (edge_position - x_array) / edge_width
     h = (p_h - p_l) * sigmoid(x_delta) + p_l
@@ -40,7 +40,6 @@ def get_crb_function(alpha, delta, edge_width, color_swip, eig: EdgeImageGenerat
     def f(edge_position):
         return calculate_edge_crb_nlf(edge_position, edge_width, alpha, delta, p_h.detach().cpu().numpy(),
                                       p_l.detach().cpu().numpy(),
-                                      eig.patch_size,
-                                      color_s=color_swip)
+                                      eig.patch_size)
 
     return f

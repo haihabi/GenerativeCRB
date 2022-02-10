@@ -10,14 +10,15 @@ def mle_gaussian(noisy_image, in_p_h, in_p_l, in_edge_width):
     mean_image_wc = norm_image.mean(dim=(1, 3))
     index = torch.tensor(np.linspace(0, patch_size - 1, patch_size).astype("float32"),
                          device=constants.DEVICE).reshape([1, 1, -1, 1])
-    w_exp = torch.exp(index / in_edge_width)
-    s = (1 - mean_image_wc.mean(dim=-1)) / (w_exp.reshape([1, -1]) * mean_image_wc).mean(dim=-1)
+    w_exp = torch.exp((index - index.max()) / in_edge_width)
+    s = (1 - mean_image_wc.mean(dim=-1)) * torch.exp(-index.max() / in_edge_width) / (
+                w_exp.reshape([1, -1]) * mean_image_wc).mean(dim=-1)
     return -in_edge_width * torch.log(s)
     # pass
 
 
 if __name__ == '__main__':
-    from experiments.analysis.edge_bound.edge_image_generator import EdgeImageGenerator
+    from experiments.data_model.edge_position.edge_image_generator import EdgeImageGenerator
 
     color_swip = False
     eig = EdgeImageGenerator(32)

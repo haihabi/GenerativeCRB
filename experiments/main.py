@@ -10,6 +10,7 @@ from experiments.experiment_training.nf_training import normalizing_flow_trainin
 from experiments.models_architecture.simple_normalzing_flow import generate_flow_model
 from experiments.experiment_training.single_network_optimization import SingleNetworkOptimization, OptimizerType
 from experiments.analysis.bound_validation import generate_gcrb_validation_function
+from experiments.analysis.dataset_validation import dataset_vs_testset_checking
 
 
 def config():
@@ -23,7 +24,7 @@ def config():
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)
-    cr.add_parameter('m', default=128000, type=int)
+    cr.add_parameter('m', default=512000, type=int)
     #############################################
     # Model Config
     #############################################
@@ -43,7 +44,7 @@ def config():
     # Regression Network - Flow
     #############################################
     cr.add_parameter('n_epochs_flow', default=40, type=int)
-    cr.add_parameter('nf_weight_decay', default=0, type=float)
+    cr.add_parameter('nf_weight_decay', default=1e-5, type=float)
     cr.add_parameter('nf_lr', default=0.00001, type=float)
     cr.add_parameter('grad_norm_clipping', default=0.1, type=float)
 
@@ -121,6 +122,8 @@ if __name__ == '__main__':
         save_dataset2file(validation_data, validation_dataset_file_path)
         print("Saving Dataset Files")
     common.set_seed(0)
+    dataset_vs_testset_checking(dm, training_data)
+    dataset_vs_testset_checking(dm, validation_data)
 
     training_dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
                                                           shuffle=True, num_workers=4, pin_memory=True)

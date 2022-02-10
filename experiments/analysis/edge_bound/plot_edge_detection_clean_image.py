@@ -3,7 +3,7 @@ from experiments import constants
 
 # from sidd.pipeline import process_sidd_image
 from matplotlib import pyplot as plt
-from edge_image_generator import EdgeImageGenerator
+from experiments.data_model.edge_position.edge_image_generator import EdgeImageGenerator
 from experiments.analysis.analysis_helpers import rggb2rgb
 
 # def unpack_raw(raw4ch):

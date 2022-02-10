@@ -1,6 +1,6 @@
 import torch
 from experiments import constants
-import common
+from experiments import common
 from experiments.data_model.base_mode import BaseModel
 import normflowpy as nfp
 

@@ -14,21 +14,24 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupl
     def generate_nl():
         return nn.SiLU()
 
+    input_vector_shape = [dim]
     for i in range(n_flow_blocks):
-        flows.append(nfp.flows.ActNorm(dim=dim))
+        flows.append(nfp.flows.ActNorm(x_shape=input_vector_shape))
         flows.append(
             nfp.flows.InvertibleFullyConnected(dim=dim))
-
         flows.append(
-            nfp.flows.AffineInjector(x_shape=[dim],
+            nfp.flows.AffineInjector(x_shape=input_vector_shape,
                                      condition_vector_size=condition_embedding_size, n_hidden=hidden_size_cond,
                                      net_class=nfp.base_nets.generate_mlp_class(n_layer=n_layer_cond,
                                                                                 non_linear_function=generate_nl,
                                                                                 bias=bias),
                                      scale=affine_scale))
+
+
         if affine_coupling:
             flows.append(
-                nfp.flows.AffineCoupling(x_shape=[dim], parity=i % 2, net_class=nfp.base_nets.generate_mlp_class()))
+                nfp.flows.AffineCoupling(x_shape=input_vector_shape, parity=i % 2,
+                                         net_class=nfp.base_nets.generate_mlp_class()))
         if spline_flow:
             flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b))
 

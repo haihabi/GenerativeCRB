@@ -3,8 +3,8 @@ import pickle
 import gcrb
 from experiments import constants
 import torch
-from training_nlf.training_main import generate_nlf_flow
-from experiments.analysis.edge_bound.edge_image_generator import EdgeImageGenerator
+from training_nlf.camera_nlf_training import generate_nlf_flow
+from experiments.data_model.edge_position.edge_image_generator import EdgeImageGenerator
 from matplotlib import pyplot as plt
 from experiments.analysis.edge_bound.nlf_crb import get_crb_function
 
@@ -53,14 +53,14 @@ def loop_crb_cross_point(in_crb_function, in_cross_point_array):
 
 if __name__ == '__main__':
     cam = 2
-    edge_width = 8
-    iso = 100
+    edge_width = 2
+    iso = 800
     patch_size = 32
     color_swip = False
 
     model_path_gaussian = "training_nlf/flow_gaussian_best.pt"
     model_path_nlf = "training_nlf/flow_nlf_best.pt"
-    cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
+    cross_point_array = constants.CROSS_POINT
     input_shape = [4, patch_size, patch_size]
 
     with open("results_edge.pickle", "rb") as file:
@@ -73,6 +73,7 @@ if __name__ == '__main__':
     generate_image = eig.get_image_function(edge_width, color_swip)
 
     flow_gaussian_sample_func, _, sigma = load_nlf_flow(input_shape, generate_image, model_path_gaussian, iso, cam)
+    print(sigma)
     crb_function = get_crb_function(0, sigma, edge_width, color_swip, eig)
     results_gaussian_crb = loop_crb_cross_point(crb_function, cross_point_array)
 

@@ -3,27 +3,26 @@ import torch
 from experiments import constants
 import pickle
 from pytorch_model.noise_flow import generate_noisy_image_flow
-from experiments.analysis.edge_bound.edge_image_generator import EdgeImageGenerator
+from experiments.data_model.edge_position.edge_image_generator import EdgeImageGenerator
 from experiments.analysis.analysis_helpers import image_channel_swipe_nhwc2nchw
-
-
 
 if __name__ == '__main__':
     batch_size = 32
     patch_size = 32
-    width_array = [2, 8, 16, 24, 30]
-    cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
-    iso_array = [100, 400, 800, 1600, 3200]
+    width_array = [1, 2, 8, 16, 24, 30]
+    # cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
+    # iso_array = [100, 400, 800, 1600, 3200]
     cam_array = [0, 1, 2, 3, 4]
 
-    flow = generate_noisy_image_flow([4, 32, 32], device=constants.DEVICE, load_model=True).to(constants.DEVICE)
+    flow = generate_noisy_image_flow([4, patch_size, patch_size], device=constants.DEVICE, load_model=True).to(
+        constants.DEVICE)
     eig = EdgeImageGenerator(patch_size)
 
     color_swip = False
     results = {}
     for cam in cam_array:
         results_iso = {}
-        for iso in iso_array:
+        for iso in constants.ISO_LIST:
             results_edge_width = {}
             for edge_width in width_array:
                 generate_image = eig.get_image_function(edge_width, color_swip)
@@ -36,7 +35,7 @@ if __name__ == '__main__':
 
 
                 _results_croos_points = []
-                for cross_point in cross_point_array:
+                for cross_point in constants.CROSS_POINT:
                     theta_vector = cross_point * torch.ones(batch_size, requires_grad=True).to(constants.DEVICE)
                     gfim = gcrb.adaptive_sampling_gfim(sample_function, theta_vector.reshape([-1, 1]),
                                                        batch_size=batch_size,

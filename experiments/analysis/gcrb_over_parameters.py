@@ -1,5 +1,6 @@
 import numpy as np
-import common
+from experiments import common
+from experiments.analysis.bound_validation import generate_gcrb_validation_function, gcrb_empirical_error
 from matplotlib import pyplot as plt
 from experiments.analysis.analysis_helpers import load_wandb_run, db
 
@@ -9,6 +10,9 @@ if __name__ == '__main__':
     # run_name = "youthful-haze-1350"  # Linear Model
     # run_name = "brisk-surf-1495"  # Linear Model
     run_name = "smart-pyramid-1492"  # Linear Model
+    run_name = "whole-dust-1526"  # Linear Model
+    run_name = "whole-lake-1535"  # Linear Model
+    n_samples = 512e3
     common.set_seed(0)
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
@@ -16,13 +20,13 @@ if __name__ == '__main__':
     zoom = False
     eps = 0.01
 
-    check_func = common.generate_gcrb_validation_function(dm, None, batch_size, optimal_model=model_opt,
-                                                          return_full_results=True,
-                                                          n_validation_point=20, eps=eps, m=64e3)
+    check_func = generate_gcrb_validation_function(dm, None, batch_size, optimal_model=model_opt,
+                                                   return_full_results=True,
+                                                   n_validation_point=20, eps=eps, m=n_samples)
     # bound_thm2 = eps
     data_dict = check_func(model)
-    ene_trained = common.gcrb_empirical_error(data_dict["gcrb_flow"], data_dict["crb"])
-    ene_optimal = common.gcrb_empirical_error(data_dict["gcrb_optimal_flow"], data_dict["crb"])
+    ene_trained = gcrb_empirical_error(data_dict["gcrb_flow"], data_dict["crb"])
+    ene_optimal = gcrb_empirical_error(data_dict["gcrb_optimal_flow"], data_dict["crb"])
 
     parameter = data_dict["parameter"][:, 0]
 

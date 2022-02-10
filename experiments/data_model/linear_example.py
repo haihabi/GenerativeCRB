@@ -7,7 +7,7 @@ import normflowpy as nfp
 
 
 class LinearOptimalFlow(nfp.ConditionalBaseFlowLayer):
-    def __init__(self, dim, parameter_vector_size, sigma_n):
+    def __init__(self, dim, parameter_vector_size):
         super().__init__()
         a = torch.randn([dim, parameter_vector_size], device=constants.DEVICE)
         a_norm = a / torch.sqrt(torch.pow(torch.abs(a), 2.0).sum())
@@ -15,14 +15,12 @@ class LinearOptimalFlow(nfp.ConditionalBaseFlowLayer):
         b = torch.randn([dim, dim], device=constants.DEVICE)
         b = b / torch.norm(b)
         bbt = torch.matmul(b.transpose(dim0=0, dim1=1), b)
-        self.bbt = nn.Parameter(bbt, requires_grad=False)
-        self.sigma_n = sigma_n
+        self.c_xx = nn.Parameter(bbt, requires_grad=False)
         self.dim = dim
         self.calculate_l_matrix()
 
     def calculate_l_matrix(self):
-        c_xx = torch.eye(self.dim, device=constants.DEVICE) * self.sigma_n + self.bbt
-        l_matrix = torch.linalg.cholesky(c_xx)
+        l_matrix = torch.linalg.cholesky(self.c_xx)
         self.l_matrix = l_matrix
         self.l_matrix_inv = torch.linalg.inv(l_matrix)
         self.l_log_det = torch.log(torch.linalg.det(self.l_matrix))
@@ -42,14 +40,13 @@ class LinearOptimalFlow(nfp.ConditionalBaseFlowLayer):
 
 
 class LinearModel(BaseModel):
-    def __init__(self, dim: int, theta_dim, theta_min: float, theta_max: float, sigma_n):
+    def __init__(self, dim: int, theta_dim, theta_min: float, theta_max: float):
         super().__init__(dim, theta_min, theta_max, theta_dim=theta_dim)
-        self.sigma_n = sigma_n
-        self.optimal_flow = LinearOptimalFlow(self.dim, self.parameter_vector_length, self.sigma_n)
+        self.optimal_flow = LinearOptimalFlow(self.dim, self.parameter_vector_length)
 
     @property
     def name(self) -> str:
-        return f"{super().name}_{self.sigma_n}"  # Append Sigma N to Name
+        return f"{super().name}"  # Append Sigma N to Name
 
     def _get_optimal_model(self):
         return self.optimal_flow
