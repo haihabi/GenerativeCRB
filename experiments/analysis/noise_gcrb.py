@@ -65,7 +65,7 @@ if __name__ == '__main__':
     # scene_number2run = ["003"]  # "003", "007", "010"
     # scene_number2run = ["001", "002", "003"]  # "003", "007", "010"
     batch_size = 32
-    n_max = 32000
+    n_max = 64000
     debug_plot = False
 
     sweep = args.sweep
@@ -130,12 +130,24 @@ if __name__ == '__main__':
                     clean_im = torch.reshape(in_theta, [in_batch_size, 4, patch_size, patch_size])
                     in_cond_vector = [clean_im, torch.tensor([iso]).reshape([-1]).to(constants.DEVICE),
                                       torch.tensor([cam]).reshape([-1]).to(constants.DEVICE)]
-                    return flow.sample_nll(in_batch_size, cond=in_cond_vector).reshape([-1, 1])
+                    y = flow.sample(in_batch_size, cond=in_cond_vector, temperature=0.6)
+                    # y = y[:, :, 1:-1, 1:-1]  # Filter Edges
+                    # y_max = y[:, :, :, :].max(dim=-1)[0].max(dim=-1)[0].max(dim=-1)[0]
+                    # y_min = y[:, :, :, :].min(dim=-1)[0].min(dim=-1)[0].min(dim=-1)[0]
+                    # state = (y_max <= 1)
+                    # y = y[state, :, :, :]
+                    # in_cond_vector = [clean_im[state, :, :, :],
+                    #                   torch.tensor([iso]).reshape([-1]).to(constants.DEVICE),
+                    #                   torch.tensor([cam]).reshape([-1]).to(constants.DEVICE)]
+                    y = y.detach()
+                    return flow.nll(y, in_cond_vector).reshape([-1, 1])
+
+                    # return flow.sample_nll(in_batch_size, cond=in_cond_vector).reshape([-1, 1])
 
 
                 clean_im_np = torch.reshape(theta_vector, [batch_size, 4, patch_size, patch_size])[0, :, :,
                               :].cpu().detach().numpy()
-                gfim = gcrb.adaptive_sampling_gfim(sample_function, theta_vector, batch_size=batch_size, n_max=n_max)
+                gfim = gcrb.sampling_gfim(sample_function, theta_vector, n_max, batch_size=batch_size)
                 gcrb_diag = torch.linalg.inv(gfim).detach().cpu().numpy().diagonal().reshape(
                     [4, patch_size, patch_size])
                 gcrb_diag = np.transpose(gcrb_diag, (1, 2, 0))
@@ -144,16 +156,16 @@ if __name__ == '__main__':
                 from experiments.analysis.analysis_helpers import db
 
                 psnr = db(gcrb_diag.mean())
-                psnr_relative = db(relative_gcrb.mean())
+                psnr_relative = db(np.sqrt(np.power(relative_gcrb, 2.0).mean()))
                 psnr_r = db(gcrb_diag[:, :, 0].mean())
                 psnr_g1 = db(gcrb_diag[:, :, 1].mean())
                 psnr_g2 = db(gcrb_diag[:, :, 2].mean())
                 psnr_b = db(gcrb_diag[:, :, 3].mean())
 
-                psnr_relative_r = db(relative_gcrb[:, :, 0].mean())
-                psnr_relative_g1 = db(relative_gcrb[:, :, 1].mean())
-                psnr_relative_g2 = db(relative_gcrb[:, :, 2].mean())
-                psnr_relative_b = db(relative_gcrb[:, :, 3].mean())
+                psnr_relative_r = db(np.sqrt(np.power(relative_gcrb[:, :, 0], 2.0).mean()))
+                psnr_relative_g1 = db(np.sqrt(np.power(relative_gcrb[:, :, 1], 2.0).mean()))
+                psnr_relative_g2 = db(np.sqrt(np.power(relative_gcrb[:, :, 2], 2.0).mean()))
+                psnr_relative_b = db(np.sqrt(np.power(relative_gcrb[:, :, 3], 2.0).mean()))
                 _res = {"MSE": psnr,
                         "Relative_RMSE": psnr_relative,
                         "MSE_R": psnr_r,
@@ -261,6 +273,6 @@ if __name__ == '__main__':
     if sweep:
         import pickle
 
-        with open("/experiments/analysis/results_new.pickle", "wb") as file:
+        with open("results_fixed_metric_plug_trimming.pickle", "wb") as file:
             pickle.dump(results_dict, file)
     print("a")

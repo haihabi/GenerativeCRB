@@ -6,7 +6,7 @@ iso_list = [100, 400, 800, 1600, 3200]
 cross_point_array = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 30]
 cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
 index2cam = {v: k for k, v in cam_dict.items()}
-with open("results_edge_swip.pickle", "rb") as file:
+with open("results_edge.pickle", "rb") as file:
     data = pickle.load(file)
 
 device = 0
