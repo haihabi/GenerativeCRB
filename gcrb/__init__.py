@@ -1,2 +1,2 @@
-from gcrb.adpative_sampler import adaptive_sampling_gfim
 from gcrb.constant_sampler import sampling_gfim
+from gcrb.trimming.adaptive_trimming import TrimmingType, AdaptiveTrimming, calculate_trimming_parameters

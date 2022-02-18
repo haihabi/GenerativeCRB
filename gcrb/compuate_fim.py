@@ -21,13 +21,14 @@ def compute_fim_tensor_model(in_model, in_theta_tensor, batch_size=128, score_ve
     theta_tensor = in_theta_tensor * torch.ones([batch_size, in_theta_tensor.shape[0]], requires_grad=True,
                                                 device=constants.DEVICE)
 
-    def sample_func(in_batch_size, in_theta_tensor_hat):
+    def sample_func(in_batch_size, in_theta_tensor_hat: torch.Tensor):
         gamma = in_model.sample(in_batch_size, cond=in_theta_tensor_hat)
-        if trimming_step is not None:
-            gamma = trimming_step(gamma)
         gamma = gamma.detach()
-        return in_model.nll(gamma, in_theta_tensor_hat).reshape([-1, 1])
-        # return in_model.sample_nll(in_batch_size, cond=in_theta_tensor_hat).reshape([-1, 1])
+        if trimming_step is not None:
+            trimming_status = trimming_step(gamma)
+        else:
+            trimming_status = torch.ones(in_batch_size).to(in_theta_tensor_hat.device)
+        return in_model.nll(gamma, in_theta_tensor_hat).reshape([-1, 1]), trimming_status
 
     return compute_fim_tensor_sample_function(sample_func, theta_tensor, batch_size, score_vector=score_vector,
                                               trimming_step=trimming_step)
@@ -35,11 +36,14 @@ def compute_fim_tensor_model(in_model, in_theta_tensor, batch_size=128, score_ve
 
 def compute_fim_tensor_sample_function(sample_func, in_theta_tensor, batch_size=128, score_vector=False,
                                        trimming_step=None):
-    nll_tensor = sample_func(batch_size, in_theta_tensor).reshape([-1, 1])
+    nll_tensor, status = sample_func(batch_size, in_theta_tensor)
+    nll_tensor = nll_tensor.reshape([-1, 1])
     j_matrix = jacobian_single(nll_tensor, in_theta_tensor)
+    j_matrix = j_matrix[status, ::]  # Filter score vector
+    gfim = torch.matmul(j_matrix.transpose(dim0=1, dim1=2), j_matrix)
     if score_vector:  # Output also score vector
-        return torch.matmul(j_matrix.transpose(dim0=1, dim1=2), j_matrix), j_matrix
-    return torch.matmul(j_matrix.transpose(dim0=1, dim1=2), j_matrix)
+        return gfim, j_matrix
+    return gfim
 
 
 def compute_fim_tensor(model, in_theta_tensor, batch_size=128, score_vector=False, trimming_step=None):

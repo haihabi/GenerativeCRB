@@ -1,4 +1,6 @@
 import torch
+
+import gcrb
 from experiments import common
 from experiments import data_model
 from experiments import constants
@@ -6,6 +8,8 @@ from experiments import constants
 import os
 import pickle
 import wandb
+import numpy as np
+
 from experiments.experiment_training.nf_training import normalizing_flow_training
 from experiments.models_architecture.simple_normalzing_flow import generate_flow_model
 from experiments.experiment_training.single_network_optimization import SingleNetworkOptimization, OptimizerType
@@ -59,6 +63,11 @@ def config():
     cr.add_parameter('spline_flow', type=str, default="false")
     cr.add_parameter('affine_coupling', type=str, default="false")
     cr.add_parameter('enable_lr_scheduler', type=str, default="false")
+    #############################################
+    # Trimming
+    #############################################
+    cr.add_parameter("trimming_type", default="ALL", type=str, enum=gcrb.TrimmingType)
+    cr.add_parameter("trimming_p", default=0.99, type=float)
     return cr
 
 
@@ -79,6 +88,11 @@ def load_dataset2file(file_path):
     with open(file_path, "rb") as f:
         ds = pickle.load(f)
     return ds
+
+
+def calculate_trimming_parameter(in_dataset, p):
+    data_matrix = np.stack(in_dataset.data, axis=0)
+    return gcrb.calculate_trimming_parameters(data_matrix, p=p)
 
 
 if __name__ == '__main__':
@@ -124,6 +138,9 @@ if __name__ == '__main__':
     common.set_seed(0)
     dataset_vs_testset_checking(dm, training_data)
     dataset_vs_testset_checking(dm, validation_data)
+    trimming_parameters = calculate_trimming_parameter(training_data, run_parameters.trimming_p)
+    wandb.config.update(trimming_parameters.as_dict())  # Adding trimming parameters to config
+    trimming_module = gcrb.AdaptiveTrimming(trimming_parameters, run_parameters.trimming_type)
 
     training_dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
                                                           shuffle=True, num_workers=4, pin_memory=True)
@@ -150,7 +167,8 @@ if __name__ == '__main__':
                                                enable_lr_scheduler=run_parameters.enable_lr_scheduler,
                                                scheduler_steps=[int(run_parameters.n_epochs_flow / 2)])
     check_training = generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
-                                                       logging=False, m=run_parameters.m)
+                                                       logging=False, m=run_parameters.m,
+                                                       trimming_function=trimming_module)
 
     best_flow_model, flow_model = normalizing_flow_training(flow_model, training_dataset_loader,
                                                             validation_dataset_loader,
@@ -165,5 +183,5 @@ if __name__ == '__main__':
     check_final = generate_gcrb_validation_function(dm, None, run_parameters.batch_size_validation,
                                                     logging=True,
                                                     n_validation_point=run_parameters.n_validation_point,
-                                                    m=run_parameters.m)
+                                                    m=run_parameters.m, trimming_function=trimming_module)
     check_final(best_flow_model)  # Check Best Flow
