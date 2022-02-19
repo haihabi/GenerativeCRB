@@ -25,8 +25,8 @@ if __name__ == '__main__':
 
     parameter = data_dict["parameter"][:, 0]
 
-    plt.plot(parameter, ene_optimal, "--x", label="GCRB - Optimal NF", color="green")
-    plt.plot(parameter, ene_trained, "--+", label="GCRB - Learned NF", color="red")
+    plt.plot(parameter, ene_optimal, "--x", label="eGCRB - Optimal NF", color="green")
+    plt.plot(parameter, ene_trained, "--+", label="eGCRB - Learned NF", color="red")
     plt.grid()
     plt.legend()
     plt.xlabel(r"$\xi$")
@@ -44,9 +44,9 @@ if __name__ == '__main__':
     min_value = crb_db.min() - 1.5
     ax.plot(parameter, crb_db, label="CRB", color="black")
     ax.plot(parameter, gcrb_optimal_db, "--x",
-            label="GCRB - Optimal NF", color="green")
+            label="eGCRB - Optimal NF", color="green")
     ax.plot(parameter, gcrb_flow_db, "--+",
-            label="GCRB - Learned NF", color="red")
+            label="eGCRB - Learned NF", color="red")
     plt.ylabel(r"$\frac{1}{k}\mathrm{Tr}(\mathrm{GCRB})$")
     # plt.xlabel(r"$\theta_1$")
     plt.xlabel(r"$\xi$")
@@ -57,9 +57,9 @@ if __name__ == '__main__':
         axins = ax.inset_axes([0.4, 0.07, 0.4, 0.4])
         axins.plot(parameter, crb_db, label="CRB", color="black")
         axins.plot(parameter, gcrb_optimal_db, "--x",
-                   label="GCRB - Optimal NF", color="green")
+                   label="eGCRB - Optimal NF", color="green")
         axins.plot(parameter, gcrb_flow_db, "--+",
-                   label="GCRB - Learned NF", color="red")
+                   label="eGCRB - Learned NF", color="red")
         axins.grid()
         axins.set_xticklabels([])
         axins.set_yticklabels([])

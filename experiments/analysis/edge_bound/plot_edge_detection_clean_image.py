@@ -34,12 +34,12 @@ theta_vector = cross_point * torch.ones(batch_size, requires_grad=True).to(const
 I = generate_image(theta_vector)
 I = I.cpu().detach().numpy()[0, :, :, :]
 # I = process_sidd_image(unpack_raw(I), bayer_2by2, wb, cst2)
-plt.subplot(2, 2, 1)
-plt.imshow(rggb2rgb(I))
-plt.axis('off')
-plt.title(f"Position:{cross_point}, Edge Width:{2}")
-plt.subplot(2, 2, 2)
-cross_point = 2
+# plt.subplot(2, 2, 1)
+# plt.imshow(rggb2rgb(I))
+# plt.axis('off')
+# plt.title(f"Position:{cross_point}, Edge Width:{2}")
+plt.subplot(1, 2, 1)
+cross_point = 8
 theta_vector = cross_point * torch.ones(batch_size, requires_grad=True).to(constants.DEVICE)
 I = generate_image(theta_vector)
 I = I.cpu().detach().numpy()[0, :, :, :]
@@ -47,17 +47,17 @@ I = I.cpu().detach().numpy()[0, :, :, :]
 plt.imshow(rggb2rgb(I))
 plt.axis('off')
 plt.title(f"Position:{cross_point}, Edge Width:{2}")
-plt.subplot(2, 2, 3)
-cross_point = 16
-theta_vector = cross_point * torch.ones(batch_size, requires_grad=True).to(constants.DEVICE)
-generate_image = gef.get_image_function(4, color_swip=False)
-I = generate_image(theta_vector)
-I = I.cpu().detach().numpy()[0, :, :, :]
-# I = process_sidd_image(unpack_raw(I), bayer_2by2, wb, cst2)
-plt.imshow(rggb2rgb(I))
-plt.axis('off')
-plt.title(f"Position:{cross_point}, Edge Width:{4}")
-plt.subplot(2, 2, 4)
+# plt.subplot(2, 2, 3)
+# cross_point = 16
+# theta_vector = cross_point * torch.ones(batch_size, requires_grad=True).to(constants.DEVICE)
+# generate_image = gef.get_image_function(4, color_swip=False)
+# I = generate_image(theta_vector)
+# I = I.cpu().detach().numpy()[0, :, :, :]
+# # I = process_sidd_image(unpack_raw(I), bayer_2by2, wb, cst2)
+# plt.imshow(rggb2rgb(I))
+# plt.axis('off')
+# plt.title(f"Position:{cross_point}, Edge Width:{4}")
+plt.subplot(1, 2, 2)
 cross_point = 16
 theta_vector = cross_point * torch.ones(batch_size, requires_grad=True).to(constants.DEVICE)
 generate_image = gef.get_image_function(1, color_swip=False)
@@ -66,4 +66,6 @@ I = I.cpu().detach().numpy()[0, :, :, :]
 plt.imshow(rggb2rgb(I))
 plt.axis('off')
 plt.title(f"Position:{cross_point}, Edge Width:{1}")
+# plt.gca().set_position([0, 0, 1, 1])
+plt.savefig("clean_edge_example.svg")
 plt.show()

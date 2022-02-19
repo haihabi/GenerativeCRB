@@ -19,7 +19,7 @@
   "width": 32,
   "n_epochs_flow": 60,
   "nf_weight_decay": 0,
-  "nf_lr": 1e-03,
+  "nf_lr": 0.001,
   "grad_norm_clipping": 0.1,
   "n_flow_blocks": 1,
   "n_layer_cond": 1,
@@ -31,5 +31,7 @@
   "evaluation_every_step": true,
   "spline_flow": false,
   "affine_coupling": true,
-  "enable_lr_scheduler": false
+  "enable_lr_scheduler": false,
+  "trimming_type": "ALL",
+  "trimming_p": 0.99
 }

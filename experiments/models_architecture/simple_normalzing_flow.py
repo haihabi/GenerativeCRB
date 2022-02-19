@@ -27,13 +27,13 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupl
                                                                                 bias=bias),
                                      scale=affine_scale))
 
-
         if affine_coupling:
             flows.append(
                 nfp.flows.AffineCoupling(x_shape=input_vector_shape, parity=i % 2,
-                                         net_class=nfp.base_nets.generate_mlp_class()))
+                                         net_class=nfp.base_nets.generate_mlp_class(non_linear_function=generate_nl)))
         if spline_flow:
-            flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b))
+            flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b,
+                                          base_network=nfp.base_nets.generate_mlp_class(non_linear_function=generate_nl)))
 
     return nfp.NormalizingFlowModel(MultivariateNormal(torch.zeros(dim, device=constants.DEVICE),
                                                        torch.eye(dim, device=constants.DEVICE)), flows,

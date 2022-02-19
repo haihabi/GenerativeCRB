@@ -28,7 +28,7 @@ def config():
     main_path = os.getcwd()
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)
-    cr.add_parameter('m', default=512000, type=int)
+    cr.add_parameter('m', default=64000, type=int)
     #############################################
     # Model Config
     #############################################
