@@ -6,7 +6,7 @@ import torch
 from experiments import data_model
 import normflowpy as nfp
 import pickle
-from sidd.pipeline import process_sidd_image
+
 from experiments.main import generate_flow_model
 
 META_FILE = "metadata_edge.pickle"
@@ -44,6 +44,10 @@ def image_shape(patch_size):
 
 
 def rggb2rgb(in_image):
+    try:
+        from sidd.pipeline import process_sidd_image
+    except:
+        raise Exception("Please import NoiseFlow repo")
     image_srgb = process_sidd_image(unpack_raw(in_image), bayer_2by2, wb, cst2)
     return image_srgb.astype('int')
 
@@ -71,7 +75,8 @@ def load_wandb_run(run_name):
             run.file("flow_best.pt").download()
 
             config = run.config
-            model_flow = generate_flow_model(config['dim'], config.get("theta_dim", 1), config['n_flow_blocks'],
+            dm, model_type = get_data_model(config)
+            model_flow = generate_flow_model(config['dim'], dm.theta_dim, config['n_flow_blocks'],
                                              config["spline_flow"], config.get("affine_coupling", False),
                                              n_layer_cond=config["n_layer_cond"],
                                              hidden_size_cond=config["hidden_size_cond"],
@@ -79,13 +84,13 @@ def load_wandb_run(run_name):
                                              affine_scale=config["affine_scale"],
                                              spline_k=config.get("spline_k", 8),
                                              spline_b=config.get("spline_b", 3))
+            # TODO: Read from parameters
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
             model_flow = model_flow.to(constants.DEVICE).eval()
             # for flow in model_flow.flow.flows:
             #     if isinstance(flow, nfp.flows.ActNorm):
             #         flow.data_dep_init_done = True
 
-            dm, model_type = get_data_model(config)
             if model_type == data_model.ModelType.Linear:
                 if os.path.isfile(f"{dm.model_name}_model.pt"):
                     os.remove(f"{dm.model_name}_model.pt")

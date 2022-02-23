@@ -3,11 +3,12 @@ import normflowpy as nfp
 from experiments import constants
 from torch import nn
 from torch.distributions import MultivariateNormal
+from experiments.models_architecture.sine_flow_layer import SineFlowLayer
 
 
 def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupling, n_layer_cond=4,
                         hidden_size_cond=24, spline_b=3,
-                        spline_k=8, bias=True, affine_scale=True):
+                        spline_k=8, bias=True, affine_scale=True, sine_layer=True):
     flows = []
     condition_embedding_size = theta_dim
 
@@ -15,6 +16,8 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupl
         return nn.SiLU()
 
     input_vector_shape = [dim]
+    if sine_layer:
+        flows.append(SineFlowLayer(x_shape=input_vector_shape))
     for i in range(n_flow_blocks):
         flows.append(nfp.flows.ActNorm(x_shape=input_vector_shape))
         flows.append(
@@ -33,7 +36,8 @@ def generate_flow_model(dim, theta_dim, n_flow_blocks, spline_flow, affine_coupl
                                          net_class=nfp.base_nets.generate_mlp_class(non_linear_function=generate_nl)))
         if spline_flow:
             flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b,
-                                          base_network=nfp.base_nets.generate_mlp_class(non_linear_function=generate_nl)))
+                                          base_network=nfp.base_nets.generate_mlp_class(
+                                              non_linear_function=generate_nl)))
 
     return nfp.NormalizingFlowModel(MultivariateNormal(torch.zeros(dim, device=constants.DEVICE),
                                                        torch.eye(dim, device=constants.DEVICE)), flows,

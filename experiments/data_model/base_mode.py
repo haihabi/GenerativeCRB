@@ -9,7 +9,7 @@ from torch.distributions import MultivariateNormal
 
 
 class BaseModel(object):
-    def __init__(self, dim: int, theta_min: float, theta_max: float, theta_dim=1):
+    def __init__(self, dim: int, theta_min, theta_max, theta_dim=1):
         self.theta_min = theta_min * torch.ones([1, theta_dim], device=constants.DEVICE)
         self.theta_max = theta_max * torch.ones([1, theta_dim], device=constants.DEVICE)
         self.dim = dim

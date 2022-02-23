@@ -7,7 +7,10 @@ from experiments.data_model.linear_example import LinearModel
 
 if __name__ == '__main__':
     run_name = "gentle-firebrand-1537"  # Linear Model
-    n_samples = 512e3
+    run_name = "gentle-firebrand-1537"  # Linear Model
+    run_name = "smart-pyramid-1492"  # Linear Model
+    run_name = "eternal-donkey-1620"  # Linear Model
+    n_samples = 64e3
     common.set_seed(0)
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()

@@ -31,5 +31,6 @@
   "evaluation_every_step": true,
   "spline_flow": false,
   "affine_coupling": true,
+  "sine_flow": false,
   "enable_lr_scheduler": false
 }

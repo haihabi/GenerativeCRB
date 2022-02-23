@@ -32,6 +32,7 @@
   "spline_flow": false,
   "affine_coupling": true,
   "enable_lr_scheduler": false,
+  "sine_flow": false,
   "trimming_type": "ALL",
   "trimming_p": 0.99
 }

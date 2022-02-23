@@ -38,12 +38,7 @@ def config():
     cr.add_parameter('theta_max', default=3.0, type=float)
     cr.add_parameter('theta_dim', default=1, type=int)
     cr.add_parameter('sigma_n', default=0.1, type=float)
-    ############################################
-    # Regression Network
-    #############################################
-    cr.add_parameter('n_epochs', default=2, type=int)
-    cr.add_parameter('depth', default=4, type=int)
-    cr.add_parameter('width', default=32, type=int)
+    # FrequencyPhaseEstimation Model Parameters
     #############################################
     # Regression Network - Flow
     #############################################
@@ -61,6 +56,7 @@ def config():
     cr.add_parameter('affine_scale', type=str, default="false")
     cr.add_parameter('evaluation_every_step', type=str, default="true")
     cr.add_parameter('spline_flow', type=str, default="false")
+    cr.add_parameter('sine_flow', type=str, default="false")
     cr.add_parameter('affine_coupling', type=str, default="false")
     cr.add_parameter('enable_lr_scheduler', type=str, default="false")
     #############################################
@@ -116,8 +112,9 @@ if __name__ == '__main__':
     validation_dataset_file_path = os.path.join(run_parameters.base_dataset_folder,
                                                 f"validation_{dm.name}_{run_parameters.val_dataset_size}_{run_parameters.theta_min}_{run_parameters.theta_max}_dataset.pickle")
     model_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "models")
+    force_data_generation = False
     os.makedirs(model_dataset_file_path, exist_ok=True)
-    if dm.model_exist(model_dataset_file_path):
+    if dm.model_exist(model_dataset_file_path) and not force_data_generation:
         dm.load_data_model(model_dataset_file_path)
         print("Load Model")
     else:
@@ -125,7 +122,8 @@ if __name__ == '__main__':
         print("Save Model")
     dm.save_data_model(wandb.run.dir)
 
-    if os.path.isfile(training_dataset_file_path) and os.path.isfile(validation_dataset_file_path):
+    if os.path.isfile(training_dataset_file_path) and os.path.isfile(
+            validation_dataset_file_path) and not force_data_generation:
         training_data = load_dataset2file(training_dataset_file_path)
         validation_data = load_dataset2file(validation_dataset_file_path)
         print("Loading Dataset Files")
@@ -149,7 +147,7 @@ if __name__ == '__main__':
 
     model_opt = dm.get_optimal_model()
 
-    flow_model = generate_flow_model(run_parameters.dim, run_parameters.theta_dim, run_parameters.n_flow_blocks,
+    flow_model = generate_flow_model(run_parameters.dim, dm.theta_dim, run_parameters.n_flow_blocks,
                                      run_parameters.spline_flow, run_parameters.affine_coupling,
                                      n_layer_cond=run_parameters.n_layer_cond,
                                      hidden_size_cond=run_parameters.hidden_size_cond,
@@ -157,6 +155,7 @@ if __name__ == '__main__':
                                      affine_scale=run_parameters.affine_scale,
                                      spline_b=run_parameters.spline_b,
                                      spline_k=run_parameters.spline_k,
+                                     sine_layer=run_parameters.sine_flow,
                                      )
 
     optimizer_flow = SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
