@@ -77,12 +77,14 @@ class FrequencyComplexModel(nn.Module):
             torch.linspace(0, self.n_samples - 1, self.n_samples, device=constants.DEVICE).reshape([1, -1]),
             requires_grad=False)
         self.quantization_enable = quantization_enable
-        self.q_delta = q_threshold / 2 ** (q_bit_width - 1)
+        self.q_bit_width = q_bit_width
+        self.q_delta = 2 * q_threshold / (2 ** (self.q_bit_width) - 1)
         self.q_threshold = q_threshold
 
     def quantization(self, x):
         if self.quantization_enable:
-            return torch.clamp(self.q_delta * torch.round(x / self.q_delta), -self.q_threshold, self.q_threshold)
+            return torch.clamp(self.q_delta * torch.floor(x / self.q_delta) + self.q_delta / 2, -self.q_threshold,
+                               self.q_threshold)
 
         return x
 
@@ -110,7 +112,6 @@ class FrequencyModel(BaseModel):
         self.sigma_n = sigma_n
         self.phase_noise = phase_noise
         self.quantization = quantization
-        # self.addition_noise_type = addition_noise_type
         self.is_optimal_exists = not (self.quantization or self.phase_noise)
         if self.is_optimal_exists:
             self.optimal_flow = FrequencyOptimalFlow(self.dim, self.sigma_n)
@@ -176,9 +177,13 @@ if __name__ == '__main__':
     # h = [0, 0, 0, 1, 0]
     # pn = power_law_noise(1, 20, 1e-4, h)[0, :]
     # print(pn)
-    fcm = FrequencyComplexModel(80, 0.1, quantization_enable=True, q_bit_width=4, q_threshold=1.0)
+    fcm = FrequencyComplexModel(80, 0.0, quantization_enable=False, q_bit_width=2, q_threshold=1.0)
     cond = [1, 0.05, 0]
     cond = torch.tensor(cond).reshape([1, -1])
+    x = fcm(cond)[0, :]
+
+    plt.plot(x.cpu().numpy())
+    fcm = FrequencyComplexModel(80, 0.0, quantization_enable=True, q_bit_width=8, q_threshold=1.0)
     x = fcm(cond)[0, :]
     plt.plot(x.cpu().numpy())
     plt.show()
