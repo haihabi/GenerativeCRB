@@ -133,9 +133,11 @@ if __name__ == '__main__':
     transform = None
     if dm.is_quantized:
         print("Running quantized model")
+
         transform = transforms.Compose([
             nfp.preprocess.NumPyArray2Tensor(),
-            nfp.preprocess.Dequatization(scale=run_parameters.q_threshold / (2 ** (run_parameters.q_bit_width - 1)))])
+            nfp.preprocess.Dequatization(bit_width=run_parameters.q_bit_width, threshold_max=run_parameters.q_threshold,
+                                         threshold_min=-run_parameters.q_threshold)])
 
     if os.path.isfile(training_dataset_file_path) and os.path.isfile(
             validation_dataset_file_path) and not run_parameters.force_data_generation:
