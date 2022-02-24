@@ -42,6 +42,7 @@ def config():
     cr.add_parameter('theta_dim', default=1, type=int)
     cr.add_parameter('sigma_n', default=0.1, type=float)
     # FrequencyPhaseEstimation Model Parameters
+    cr.add_parameter('dual_flow', type=str, default="false")
     cr.add_parameter('quantization', type=str, default="false")
     cr.add_parameter('q_bit_width', default=1, type=int)
     cr.add_parameter('q_threshold', default=1, type=int)
@@ -173,6 +174,7 @@ if __name__ == '__main__':
                                      spline_b=run_parameters.spline_b,
                                      spline_k=run_parameters.spline_k,
                                      sine_layer=run_parameters.sine_flow,
+                                     dual_flow=run_parameters.dual_flow,
                                      )
 
     optimizer_flow = SingleNetworkOptimization(flow_model, run_parameters.n_epochs_flow,
