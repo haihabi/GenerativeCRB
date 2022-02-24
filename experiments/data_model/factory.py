@@ -17,7 +17,10 @@ def get_model(model_type, model_parameter_dict) -> BaseModel:
         return Pow1Div3Gaussian(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_MIN],
                                 model_parameter_dict[constants.THETA_MAX])
     elif model_type == ModelType.FrequencyPhaseEstimation:
-        return FrequencyModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.SIGMA_N])
+        return FrequencyModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.SIGMA_N],
+                              quantization=model_parameter_dict[constants.QUANTIZATION],
+                              bit_width=model_parameter_dict[constants.BITWIDTH],
+                              threshold=model_parameter_dict[constants.THRESHOLD])
     elif model_type == ModelType.Linear:
         return LinearModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_DIM],
                            model_parameter_dict[constants.THETA_MIN],

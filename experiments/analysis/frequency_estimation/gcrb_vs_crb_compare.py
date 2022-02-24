@@ -6,32 +6,40 @@ from experiments.analysis.analysis_helpers import load_wandb_run, db
 import gcrb
 import torch
 
-if __name__ == '__main__':
-    run_name = "comfy-pine-1716"  # Linear Model
+models_dict = {0: "easy-snowflake-1688"}
 
-    m = 64e3
-    common.set_seed(0)
-    model, dm, config = load_wandb_run(run_name)
-    model_opt = dm.get_optimal_model()
-    batch_size = 4096
-    zoom = True
-    eps = 0.01
+
+def build_parameter_vector(amp, freq, phase):
+    theta = [amp, freq, phase]
+    theta = torch.tensor(theta).float()
+    return theta
+
+
+def compare_gcrb_vs_crb_over_freq(amp, phase, freq_array):
     results_gcrb = []
     results_crb = []
-    f_0_array = np.linspace(0.01, 0.49)
-    for f_0 in np.linspace(0.01, 0.49):
-        theta = [1, f_0, 0]
-        theta = torch.tensor(theta).float()
-
+    for f_0 in freq_array:
+        theta = build_parameter_vector(amp, f_0, phase)
         fim_optimal_back = gcrb.sampling_gfim(model, theta.reshape([-1]), m,
                                               batch_size=batch_size)
         egcrb = torch.linalg.inv(fim_optimal_back).detach().cpu().numpy()
         crb = dm.crb(theta).detach().cpu().numpy()
-
         results_crb.append(crb)
         results_gcrb.append(egcrb)
     results_crb = np.stack(results_crb)
     results_gcrb = np.stack(results_gcrb)
+
+
+if __name__ == '__main__':
+    m = 64e3
+    batch_size = 4096
+    f_0_array = np.linspace(0.01, 0.49)
+    common.set_seed(0)
+    run_name = "comfy-pine-1716"  # Linear Model
+
+    model, dm, config = load_wandb_run(run_name)
+    model_opt = dm.get_optimal_model()
+
     for i in range(3):
         for j in range(3):
             plt.subplot(3, 3, 1 + i + 3 * j)
