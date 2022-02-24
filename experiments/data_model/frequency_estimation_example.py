@@ -134,8 +134,10 @@ class FrequencyModel(BaseModel):
         torch.save(self.optimal_flow.state_dict(), os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def load_data_model(self, folder):
-        data = torch.load(os.path.join(folder, f"{self.model_name}_model.pt"))
-        self.optimal_flow.load_state_dict(data)
+        if self.is_optimal_exists:
+            print("Loading optimal model")
+            data = torch.load(os.path.join(folder, f"{self.model_name}_model.pt"))
+            self.optimal_flow.load_state_dict(data)
 
     def generate_data(self, n_samples, theta):
         cond = torch.ones([n_samples, 1], device=constants.DEVICE) * theta
