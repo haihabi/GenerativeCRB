@@ -142,8 +142,11 @@ class FrequencyModel(BaseModel):
 
     def generate_data(self, n_samples, theta):
         cond = torch.ones([n_samples, 1], device=constants.DEVICE) * theta
-        z = torch.randn([n_samples, self.dim], device=constants.DEVICE)
-        return self.optimal_flow.backward(z, cond=cond)[0]
+        if self.is_optimal_exists:
+            z = torch.randn([n_samples, self.dim], device=constants.DEVICE)
+            return self.optimal_flow.backward(z, cond=cond)[0]
+        else:
+            return self.data_generator(cond)
 
     @staticmethod
     def ml_estimator(r):
