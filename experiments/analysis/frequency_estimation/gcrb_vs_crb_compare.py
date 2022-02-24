@@ -7,7 +7,7 @@ import gcrb
 import torch
 
 if __name__ == '__main__':
-    run_name = "misunderstood-universe-1714"  # Linear Model
+    run_name = "comfy-pine-1716"  # Linear Model
 
     m = 64e3
     common.set_seed(0)
