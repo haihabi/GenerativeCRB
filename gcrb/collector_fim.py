@@ -35,9 +35,6 @@ class FisherInformationMatrixCollector(nn.Module):
         return self.score_sum / self.i
 
     def calculate_final_fim(self):
-        # mean_correction = torch.matmul(torch.unsqueeze(self.calculate_score_mean(), dim=-1),
-        #                                torch.unsqueeze(self.calculate_score_mean(), dim=-1).T)
-        # return (self.fim_sum - mean_correction * self.i) / (self.i - 1)  # Mean Correction + Unbiased Variance estimator
         return self.mean
 
     def calculate_score_mean_norm(self):

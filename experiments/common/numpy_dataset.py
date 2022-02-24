@@ -3,13 +3,16 @@ from torch.utils.data.dataset import Dataset
 
 
 class NumpyDataset(Dataset):
-    def __init__(self, data, label):
+    def __init__(self, data, label, transform):
         self.data = data
         self.label = label
+        self.transform = transform
         self.n = len(data)
 
     def __getitem__(self, index):
         d = self.data[index]
+        if self.transform is not None:
+            d = self.transform(d)
         l = self.label[index]
         return d, l
 

@@ -6,7 +6,7 @@ max_re = [0.03366, 0.02, 0.01918, 0.01603, 0.01804, 0.009486, 0.008615, 0.005721
 mean_re = [0.02945, 0.01684, 0.01716, 0.01313, 0.01429, 0.006746, 0.005648, 0.00353, 0.003181, 0.004529,
            0.003989]
 print(len(max_re), len(mean_re))
-zoom = True
+zoom = False
 # eps = 0.01
 dataset_size = np.asarray(dataset_size)
 max_re = np.asarray(max_re)

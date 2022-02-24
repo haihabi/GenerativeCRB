@@ -7,7 +7,7 @@ import gcrb
 import torch
 
 if __name__ == '__main__':
-    run_name = "easy-snowflake-1688"  # Linear Model
+    run_name = "cool-armadillo-1713"  # Linear Model
 
     m = 64e3
     common.set_seed(0)

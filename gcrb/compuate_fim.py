@@ -27,15 +27,13 @@ def compute_fim_tensor_model(in_model, in_theta_tensor, batch_size=128, score_ve
         if trimming_step is not None:
             trimming_status = trimming_step(gamma)
         else:
-            trimming_status = torch.ones(in_batch_size).to(in_theta_tensor_hat.device)
+            trimming_status = torch.ones(in_batch_size).bool().to(in_theta_tensor_hat.device)
         return in_model.nll(gamma, in_theta_tensor_hat).reshape([-1, 1]), trimming_status
 
-    return compute_fim_tensor_sample_function(sample_func, theta_tensor, batch_size, score_vector=score_vector,
-                                              trimming_step=trimming_step)
+    return compute_fim_tensor_sample_function(sample_func, theta_tensor, batch_size, score_vector=score_vector)
 
 
-def compute_fim_tensor_sample_function(sample_func, in_theta_tensor, batch_size=128, score_vector=False,
-                                       trimming_step=None):
+def compute_fim_tensor_sample_function(sample_func, in_theta_tensor, batch_size=128, score_vector=False):
     nll_tensor, status = sample_func(batch_size, in_theta_tensor)
     nll_tensor = nll_tensor.reshape([-1, 1])
     j_matrix = jacobian_single(nll_tensor, in_theta_tensor)
@@ -52,7 +50,7 @@ def compute_fim_tensor(model, in_theta_tensor, batch_size=128, score_vector=Fals
                                         trimming_step=trimming_step)
     elif callable(model):
         return compute_fim_tensor_sample_function(model, in_theta_tensor, batch_size=batch_size,
-                                                  score_vector=score_vector, trimming_step=trimming_step)
+                                                  score_vector=score_vector)
     else:
         raise Exception("")
 

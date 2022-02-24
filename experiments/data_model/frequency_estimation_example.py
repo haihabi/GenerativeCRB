@@ -12,6 +12,8 @@ MAXFREQ = 0.49
 PHASEMIN = 0
 PHASEMAX = 2 * math.pi
 FREQDELTA = 0.01
+MINAMP = 0.4
+MAXAMP = 1.0
 
 
 def plot_spectrum(x, eps=1e-7):
@@ -67,7 +69,7 @@ class FrequencyOptimalFlow(nn.Module):
 
 
 class FrequencyComplexModel(nn.Module):
-    def __init__(self, n_samples, sigma_n, quantization_enable=False, q_delta=0.1, q_threshold=1):
+    def __init__(self, n_samples, sigma_n, quantization_enable=False, q_bit_width=8, q_threshold=1):
         super().__init__()
         self.sigma_n = sigma_n
         self.n_samples = n_samples
@@ -75,12 +77,12 @@ class FrequencyComplexModel(nn.Module):
             torch.linspace(0, self.n_samples - 1, self.n_samples, device=constants.DEVICE).reshape([1, -1]),
             requires_grad=False)
         self.quantization_enable = quantization_enable
-        self.q_delta = q_delta
+        self.q_delta = q_threshold / 2 ** (q_bit_width - 1)
         self.q_threshold = q_threshold
 
     def quantization(self, x):
         if self.quantization_enable:
-            return torch.clamp(self.q_delta*torch.round(x / self.q_delta), -self.q_threshold, self.q_threshold)
+            return torch.clamp(self.q_delta * torch.round(x / self.q_delta), -self.q_threshold, self.q_threshold)
 
         return x
 
@@ -98,21 +100,25 @@ class FrequencyComplexModel(nn.Module):
 
 
 class FrequencyModel(BaseModel):
-    def __init__(self, dim: int, sigma_n, phase_noise=False, quantization=False, addition_noise_type=None, amp_min=0.8,
-                 amp_max=1.2, phase_noise_scale=0.01):
-        theta_min = [amp_min, 0.0 + FREQDELTA, PHASEMIN]
-        theta_max = [amp_max, 0.5 - FREQDELTA, PHASEMAX]
+    def __init__(self, dim: int, sigma_n, quantization=False, phase_noise=False,
+                 bit_width=None, threshold=None,
+                 phase_noise_scale=0.01):
+        theta_min = [MINAMP, 0.0 + FREQDELTA, PHASEMIN]
+        theta_max = [MAXAMP, 0.5 - FREQDELTA, PHASEMAX]
         super().__init__(dim, torch.tensor(theta_min).reshape([1, -1]), torch.tensor(theta_max).reshape([1, -1]),
-                         theta_dim=len(theta_min))
+                         theta_dim=len(theta_min), quantized=True)
         self.sigma_n = sigma_n
         self.phase_noise = phase_noise
         self.quantization = quantization
-        self.addition_noise_type = addition_noise_type
-        self.is_optimal_exists = not (self.quantization or self.phase_noise or self.addition_noise_type is not None)
+        # self.addition_noise_type = addition_noise_type
+        self.is_optimal_exists = not (self.quantization or self.phase_noise)
         if self.is_optimal_exists:
             self.optimal_flow = FrequencyOptimalFlow(self.dim, self.sigma_n)
+            self.data_generator = None
         else:
-            pass
+            self.data_generator = FrequencyComplexModel(dim, sigma_n, quantization_enable=quantization,
+                                                        q_bit_width=bit_width, q_threshold=threshold)
+            self.optimal_flow = None
 
     @property
     def name(self) -> str:
@@ -170,8 +176,8 @@ if __name__ == '__main__':
     # h = [0, 0, 0, 1, 0]
     # pn = power_law_noise(1, 20, 1e-4, h)[0, :]
     # print(pn)
-    fcm = FrequencyComplexModel(20, 0.1, quantization_enable=True, q_delta=1/2**7, q_threshold=1.0)
-    cond = [1, 0.2, 0]
+    fcm = FrequencyComplexModel(80, 0.1, quantization_enable=True, q_bit_width=4, q_threshold=1.0)
+    cond = [1, 0.05, 0]
     cond = torch.tensor(cond).reshape([1, -1])
     x = fcm(cond)[0, :]
     plt.plot(x.cpu().numpy())

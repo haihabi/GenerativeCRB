@@ -2,6 +2,9 @@ from experiments import common
 
 DEVICE = common.get_working_device()
 DIM = "dim"
+BITWIDTH = "bit_width"
+THRESHOLD = "threshold"
+QUANTIZATION = "quantization"
 THETA_MIN = "theta_min"
 THETA_MAX = "theta_max"
 THETA_DIM = "theta_dim"

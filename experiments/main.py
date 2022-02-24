@@ -1,4 +1,5 @@
 import torch
+from torchvision import transforms
 
 import gcrb
 from experiments import common
@@ -9,6 +10,7 @@ import os
 import pickle
 import wandb
 import numpy as np
+import normflowpy as nfp
 
 from experiments.experiment_training.nf_training import normalizing_flow_training
 from experiments.models_architecture.simple_normalzing_flow import generate_flow_model
@@ -29,6 +31,7 @@ def config():
     cr.add_parameter('base_log_folder', default=os.path.join(main_path, constants.LOGS), type=str)
     cr.add_parameter('base_dataset_folder', default=os.path.join(main_path, constants.DATASETS), type=str)
     cr.add_parameter('m', default=64000, type=int)
+    cr.add_parameter('force_data_generation', type=str, default="true")
     #############################################
     # Model Config
     #############################################
@@ -39,6 +42,9 @@ def config():
     cr.add_parameter('theta_dim', default=1, type=int)
     cr.add_parameter('sigma_n', default=0.1, type=float)
     # FrequencyPhaseEstimation Model Parameters
+    cr.add_parameter('quantization', type=str, default="false")
+    cr.add_parameter('q_bit_width', default=1, type=int)
+    cr.add_parameter('q_threshold', default=1, type=int)
     #############################################
     # Regression Network - Flow
     #############################################
@@ -71,6 +77,9 @@ def generate_model_parameter_dict(in_param) -> dict:
     return {constants.DIM: in_param.dim,
             constants.THETA_MIN: in_param.theta_min,
             constants.THETA_DIM: in_param.theta_dim,
+            constants.QUANTIZATION: in_param.quantization,
+            constants.BITWIDTH: in_param.q_threshold,
+            constants.THRESHOLD: in_param.theta_dim,
             constants.SIGMA_N: in_param.sigma_n,
             constants.THETA_MAX: in_param.theta_max}
 
@@ -112,9 +121,8 @@ if __name__ == '__main__':
     validation_dataset_file_path = os.path.join(run_parameters.base_dataset_folder,
                                                 f"validation_{dm.name}_{run_parameters.val_dataset_size}_{run_parameters.theta_min}_{run_parameters.theta_max}_dataset.pickle")
     model_dataset_file_path = os.path.join(run_parameters.base_dataset_folder, "models")
-    force_data_generation = False
     os.makedirs(model_dataset_file_path, exist_ok=True)
-    if dm.model_exist(model_dataset_file_path) and not force_data_generation:
+    if dm.model_exist(model_dataset_file_path) and not run_parameters.force_data_generation:
         dm.load_data_model(model_dataset_file_path)
         print("Load Model")
     else:
@@ -122,14 +130,21 @@ if __name__ == '__main__':
         print("Save Model")
     dm.save_data_model(wandb.run.dir)
 
+    transform = None
+    if dm.is_quantized:
+        print("Running quantized model")
+        transform = transforms.Compose([
+            nfp.preprocess.NumPyArray2Tensor(),
+            nfp.preprocess.Dequatization(scale=run_parameters.q_threshold / (2 ** (run_parameters.q_bit_width - 1)))])
+
     if os.path.isfile(training_dataset_file_path) and os.path.isfile(
-            validation_dataset_file_path) and not force_data_generation:
+            validation_dataset_file_path) and not run_parameters.force_data_generation:
         training_data = load_dataset2file(training_dataset_file_path)
         validation_data = load_dataset2file(validation_dataset_file_path)
         print("Loading Dataset Files")
     else:
-        training_data = dm.build_dataset(run_parameters.dataset_size)
-        validation_data = dm.build_dataset(run_parameters.val_dataset_size)
+        training_data = dm.build_dataset(run_parameters.dataset_size, transform)
+        validation_data = dm.build_dataset(run_parameters.val_dataset_size, transform)
         save_dataset2file(training_data, training_dataset_file_path)
         save_dataset2file(validation_data, validation_dataset_file_path)
         print("Saving Dataset Files")
