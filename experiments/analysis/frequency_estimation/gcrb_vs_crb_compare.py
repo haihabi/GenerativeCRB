@@ -28,17 +28,27 @@ def compare_gcrb_vs_crb_over_freq(amp, phase, freq_array):
         results_gcrb.append(egcrb)
     results_crb = np.stack(results_crb)
     results_gcrb = np.stack(results_gcrb)
+    return results_crb, results_gcrb
 
 
 if __name__ == '__main__':
     m = 64e3
     batch_size = 4096
-    f_0_array = np.linspace(0.01, 0.49)
+    f_0_array = np.linspace(0.01, 0.49, num=50)
     common.set_seed(0)
-    run_name = "comfy-pine-1716"  # Linear Model
+    run_name = "bumbling-glade-1752"  # Linear Model
+    run_name = "firm-snowball-1732"  # Linear Model
+    run_name = "iconic-moon-1711"  # Linear Model
+    run_name = "curious-lion-1757"  # Linear Model
 
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
+    results_crb, results_gcrb = compare_gcrb_vs_crb_over_freq(1, 0, f_0_array)
+    re=gcrb_empirical_error(results_gcrb,results_crb)
+
+    plt.plot(f_0_array,re)
+    plt.grid()
+    plt.show()
 
     for i in range(3):
         for j in range(3):

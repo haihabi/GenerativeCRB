@@ -7,13 +7,11 @@ import math
 from matplotlib import pyplot as plt
 import numpy as np
 
-MINFREQ = 0.01
-MAXFREQ = 0.49
 PHASEMIN = 0
 PHASEMAX = 2 * math.pi
 FREQDELTA = 0.01
-MINAMP = 0.4
-MAXAMP = 1.0
+MINAMP = 0.8
+MAXAMP = 1.2
 
 
 def plot_spectrum(x, eps=1e-7):
@@ -112,6 +110,8 @@ class FrequencyModel(BaseModel):
         self.sigma_n = sigma_n
         self.phase_noise = phase_noise
         self.quantization = quantization
+        self.bit_width = bit_width
+        self.threshold = threshold
         self.is_optimal_exists = not (self.quantization or self.phase_noise)
         if self.is_optimal_exists:
             self.optimal_flow = FrequencyOptimalFlow(self.dim, self.sigma_n)
@@ -123,7 +123,11 @@ class FrequencyModel(BaseModel):
 
     @property
     def name(self) -> str:
-        return f"{super().name}_{self.sigma_n}"  # Append Sigma N to Name
+        name = f"{super().name}_{self.sigma_n}"
+        if self.quantization:
+            name = name + f"_{self.bit_width}_{self.threshold}"
+
+        return name  # Append Sigma N to Name
 
     def _get_optimal_model(self):
         if self.is_optimal_exists:
@@ -183,13 +187,13 @@ if __name__ == '__main__':
     # h = [0, 0, 0, 1, 0]
     # pn = power_law_noise(1, 20, 1e-4, h)[0, :]
     # print(pn)
-    fcm = FrequencyComplexModel(80, 0.0, quantization_enable=False, q_bit_width=2, q_threshold=1.0)
-    cond = [1, 0.05, 0]
+    fcm = FrequencyComplexModel(80, 1.2, quantization_enable=False, q_bit_width=2, q_threshold=1.0)
+    cond = [1, 0.2, 0]
     cond = torch.tensor(cond).reshape([1, -1])
     x = fcm(cond)[0, :]
 
     plt.plot(x.cpu().numpy())
-    fcm = FrequencyComplexModel(80, 0.0, quantization_enable=True, q_bit_width=8, q_threshold=1.0)
+    fcm = FrequencyComplexModel(80, 1.2, quantization_enable=True, q_bit_width=8, q_threshold=1.0)
     x = fcm(cond)[0, :]
     plt.plot(x.cpu().numpy())
     plt.show()

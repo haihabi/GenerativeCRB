@@ -57,6 +57,9 @@ def get_data_model(in_config):
         return {constants.DIM: in_config[constants.DIM],
                 constants.THETA_MIN: in_config[constants.THETA_MIN],
                 constants.THETA_DIM: in_config.get(constants.THETA_DIM, 1),
+                constants.QUANTIZATION: in_config.get(constants.QUANTIZATION, False),
+                constants.BITWIDTH: in_config.get("q_bit_width", 8),
+                constants.THRESHOLD: in_config.get("q_threshold", 1),
                 constants.SIGMA_N: in_config[constants.SIGMA_N],
                 constants.THETA_MAX: in_config[constants.THETA_MAX]}
 
@@ -83,7 +86,9 @@ def load_wandb_run(run_name):
                                              bias=config["mlp_bias"],
                                              affine_scale=config["affine_scale"],
                                              spline_k=config.get("spline_k", 8),
-                                             spline_b=config.get("spline_b", 3))
+                                             spline_b=config.get("spline_b", 3),
+                                             sine_layer=config.get("sine_flow", False),
+                                             dual_flow=config.get("dual_flow", False))
             # TODO: Read from parameters
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
             model_flow = model_flow.to(constants.DEVICE).eval()
