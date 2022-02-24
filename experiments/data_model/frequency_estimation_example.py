@@ -131,7 +131,8 @@ class FrequencyModel(BaseModel):
         return None
 
     def save_data_model(self, folder):
-        torch.save(self.optimal_flow.state_dict(), os.path.join(folder, f"{self.model_name}_model.pt"))
+        if self.is_optimal_exists:
+            torch.save(self.optimal_flow.state_dict(), os.path.join(folder, f"{self.model_name}_model.pt"))
 
     def load_data_model(self, folder):
         if self.is_optimal_exists:
