@@ -88,7 +88,8 @@ def load_wandb_run(run_name):
                                              spline_k=config.get("spline_k", 8),
                                              spline_b=config.get("spline_b", 3),
                                              sine_layer=config.get("sine_flow", False),
-                                             dual_flow=config.get("dual_flow", False))
+                                             dual_flow=config.get("dual_flow", False),
+                                             neighbor_splitting=config.get("neighbor_splitting", False))
             # TODO: Read from parameters
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
             model_flow = model_flow.to(constants.DEVICE).eval()

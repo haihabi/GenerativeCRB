@@ -30,17 +30,11 @@ def plot_spectrum(x, eps=1e-7):
     plt.show()
 
 
-def power_law_noise(batch_size, dim, scale, h):
-    x = torch.randn([batch_size, dim])
-    x_fft = torch.fft.fft(x)
-    f_dig = torch.linspace(-math.pi, math.pi, dim)
-    f_dig2 = torch.pow(f_dig, 2)
-    f_dig3 = torch.pow(f_dig, 3)
-    f_dig4 = torch.pow(f_dig, 4)
-    scale_spectum = scale * ((h[4] / f_dig4) + (h[3] / f_dig3) + (h[2] / f_dig2) + (h[1] / f_dig) + h[0])
-    scale_spectum = scale_spectum.reshape([1, -1])
-    x_fft_pl = x_fft * scale_spectum
-    return torch.fft.ifft(x_fft_pl).real
+def winner_phase_noise(batch_size, dim, scale):
+    noise = torch.zeros([batch_size, dim])
+    for i in range(dim - 1):
+        noise[:, i + 1] = noise[:, i] + scale * torch.randn([batch_size])
+    return noise
 
 
 class FrequencyOptimalFlow(nn.Module):
@@ -67,7 +61,7 @@ class FrequencyOptimalFlow(nn.Module):
 
 
 class FrequencyComplexModel(nn.Module):
-    def __init__(self, n_samples, sigma_n, quantization_enable=False, q_bit_width=8, q_threshold=1):
+    def __init__(self, n_samples, sigma_n, quantization_enable=False, q_bit_width=8, q_threshold=1, phase_noise=False):
         super().__init__()
         self.sigma_n = sigma_n
         self.n_samples = n_samples
@@ -78,6 +72,7 @@ class FrequencyComplexModel(nn.Module):
         self.q_bit_width = q_bit_width
         self.q_delta = 2 * q_threshold / (2 ** (self.q_bit_width) - 1)
         self.q_threshold = q_threshold
+        self.phase_noise = phase_noise
 
     def quantization(self, x):
         if self.quantization_enable:
@@ -105,14 +100,14 @@ class FrequencyModel(BaseModel):
                  phase_noise_scale=0.01):
         theta_min = [MINAMP, 0.0 + FREQDELTA, PHASEMIN]
         theta_max = [MAXAMP, 0.5 - FREQDELTA, PHASEMAX]
+        self.is_optimal_exists = not (quantization or phase_noise)
         super().__init__(dim, torch.tensor(theta_min).reshape([1, -1]), torch.tensor(theta_max).reshape([1, -1]),
-                         theta_dim=len(theta_min), quantized=True)
+                         theta_dim=len(theta_min), quantized=quantization, has_crb=self.is_optimal_exists)
         self.sigma_n = sigma_n
         self.phase_noise = phase_noise
         self.quantization = quantization
         self.bit_width = bit_width
         self.threshold = threshold
-        self.is_optimal_exists = not (self.quantization or self.phase_noise)
         if self.is_optimal_exists:
             self.optimal_flow = FrequencyOptimalFlow(self.dim, self.sigma_n)
             self.data_generator = None
@@ -187,15 +182,20 @@ if __name__ == '__main__':
     # h = [0, 0, 0, 1, 0]
     # pn = power_law_noise(1, 20, 1e-4, h)[0, :]
     # print(pn)
-    fcm = FrequencyComplexModel(80, 1.2, quantization_enable=False, q_bit_width=2, q_threshold=1.0)
+    # fcm = FrequencyComplexModel(80, 1.2, quantization_enable=False, q_bit_width=2, q_threshold=1.0)
     cond = [1, 0.2, 0]
     cond = torch.tensor(cond).reshape([1, -1])
+    # x = fcm(cond)[0, :]
+    #
+    # plt.plot(x.cpu().numpy())
+    fcm = FrequencyComplexModel(40, 0.4, quantization_enable=True, q_bit_width=4, q_threshold=1.0)
     x = fcm(cond)[0, :]
-
-    plt.plot(x.cpu().numpy())
-    fcm = FrequencyComplexModel(80, 1.2, quantization_enable=True, q_bit_width=8, q_threshold=1.0)
-    x = fcm(cond)[0, :]
-    plt.plot(x.cpu().numpy())
+    plt.plot(x.cpu().numpy(), "-x")
+    plt.grid()
+    plt.xlabel("n")
+    plt.ylabel("y[n]")
+    plt.savefig("noisy_sine.svg")
     plt.show()
+
     # pn = torch.randn([1, 40])[0, :]
-    plot_spectrum(x)
+    # plot_spectrum(x)

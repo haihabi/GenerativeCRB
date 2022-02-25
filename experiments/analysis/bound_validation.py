@@ -31,6 +31,8 @@ def generate_gcrb_validation_function(current_data_model, in_regression_network,
                                       sampling_method=SamplingMethod.CONSTANT, theta_scale_min=None,
                                       theta_scale_max=None, trimming_function=None):
     def check_example(in_flow_model):
+        if not current_data_model.has_crb:
+            return {}
         start_time = time.time()
         crb_list = []
         fim_list = []

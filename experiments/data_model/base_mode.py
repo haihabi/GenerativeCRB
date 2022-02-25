@@ -9,12 +9,13 @@ from torch.distributions import MultivariateNormal
 
 
 class BaseModel(object):
-    def __init__(self, dim: int, theta_min, theta_max, theta_dim=1, quantized=False):
+    def __init__(self, dim: int, theta_min, theta_max, theta_dim=1, quantized=False, has_crb=True):
         self.theta_min = theta_min * torch.ones([1, theta_dim], device=constants.DEVICE)
         self.theta_max = theta_max * torch.ones([1, theta_dim], device=constants.DEVICE)
         self.dim = dim
         self.theta_dim = theta_dim
         self.is_quantized = quantized
+        self.has_crb = has_crb
 
     @property
     def parameter_vector_length(self):
