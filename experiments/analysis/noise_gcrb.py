@@ -10,6 +10,7 @@ from experiments import constants
 import os
 import glob
 import argparse
+import pickle
 
 cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
 
@@ -43,27 +44,12 @@ def input_arguments():
     return parser.parse_args()
 
 
-# CLEAN_IMAGE_PATH = {0: {"001": (225, 282, "0030_001_IP_01600_02000_5500_N", None),
-#                         "002": (1257, 1387, "0030_001_IP_01600_02000_5500_N", None),
-#                         "003": (270, 1475, "0030_001_IP_01600_02000_5500_N", None)},
-#                     1: {"001": (1210, 1658, "0017_001_GP_00100_00060_5500_N", (1, 2)),
-#                         "002": (280, 655, "0017_001_GP_00100_00060_5500_N", (1, 2)),
-#                         "003": (1170, 580, "0017_001_GP_00100_00060_5500_N", (1, 2))},
-#                     2: {"001": (1379, 365, "0012_001_S6_00800_00500_5500_N", (2)),
-#                         "002": (80, 1755, "0012_001_S6_00800_00500_5500_N", (2)),
-#                         "003": (1313, 1882, "0012_001_S6_00800_00500_5500_N", (2))},
-#                     3: {"001": (1332, 1780, "0022_001_N6_00100_00060_5500_N", (1, 2)),
-#                         "002": (280, 660, "0022_001_N6_00100_00060_5500_N", (1, 2)),
-#                         "003": (1283, 567, "0022_001_N6_00100_00060_5500_N", (1, 2))},
-#                     4: None}
 cam_dict = {'Apple': 0, 'Google': 1, 'samsung': 2, 'motorola': 3, 'LGE': 4}
 cam_dict_r = {v: k for k, v in cam_dict.items()}
 if __name__ == '__main__':
     args = input_arguments()
     dataset_folder = "/data/datasets/SIDD_Medium_Raw/Data/"
     scene_number2run = ["003", "007", "010"]  # "003", "007", "010"
-    # scene_number2run = ["003"]  # "003", "007", "010"
-    # scene_number2run = ["001", "002", "003"]  # "003", "007", "010"
     batch_size = 32
     n_max = 64000
     debug_plot = False
@@ -82,7 +68,8 @@ if __name__ == '__main__':
     title_list = ["R", "G", "G", "B"]
 
     results_dict = {}
-    flow = generate_noisy_image_flow([4, patch_size, patch_size], device=constants.DEVICE, load_model=True).to(
+    flow = generate_noisy_image_flow([4, patch_size, patch_size], device=constants.DEVICE, load_model=True,
+                                     activation_function="silu").to(
         constants.DEVICE)
     for j, scene_number in enumerate(scene_number2run):
         if scene_number == "007":
@@ -131,16 +118,12 @@ if __name__ == '__main__':
                     in_cond_vector = [clean_im, torch.tensor([iso]).reshape([-1]).to(constants.DEVICE),
                                       torch.tensor([cam]).reshape([-1]).to(constants.DEVICE)]
                     y = flow.sample(in_batch_size, cond=in_cond_vector, temperature=0.6)
-                    # y = y[:, :, 1:-1, 1:-1]  # Filter Edges
-                    # y_max = y[:, :, :, :].max(dim=-1)[0].max(dim=-1)[0].max(dim=-1)[0]
-                    # y_min = y[:, :, :, :].min(dim=-1)[0].min(dim=-1)[0].min(dim=-1)[0]
-                    # state = (y_max <= 1)
-                    # y = y[state, :, :, :]
-                    # in_cond_vector = [clean_im[state, :, :, :],
-                    #                   torch.tensor([iso]).reshape([-1]).to(constants.DEVICE),
-                    #                   torch.tensor([cam]).reshape([-1]).to(constants.DEVICE)]
+                    status = torch.ones([in_batch_size], device=constants.DEVICE).bool()
+                    # max_value = torch.abs(y).reshape([in_batch_size, -1]).max(dim=-1)[0]
+                    # status = max_value < 1
+
                     y = y.detach()
-                    return flow.nll(y, in_cond_vector).reshape([-1, 1])
+                    return flow.nll(y, in_cond_vector).reshape([-1, 1]), status
 
                     # return flow.sample_nll(in_batch_size, cond=in_cond_vector).reshape([-1, 1])
 
@@ -221,7 +204,7 @@ if __name__ == '__main__':
                     noise_image = flow.sample(batch_size,
                                               cond=[clean_im, torch.tensor([iso]).reshape([-1]).to(constants.DEVICE),
                                                     torch.tensor([cam]).reshape([-1]).to(constants.DEVICE)])
-                    noise_image = noise_image[-1].cpu().detach().numpy()
+                    noise_image = noise_image.cpu().detach().numpy()
 
                     noise_image = np.transpose(noise_image, (0, 2, 3, 1))[0, :, :, :]
                     noise_srgb = process_sidd_image(unpack_raw(noise_image), bayer_2by2, wb, cst2)
@@ -268,11 +251,12 @@ if __name__ == '__main__':
 
             results_iso_dict[iso] = results_cam_dict
         results_dict[scene_number] = results_iso_dict
+
+        with open("results_fixed_metric_plug_trimming.pickle_mid_results", "wb") as file:
+            pickle.dump(results_dict, file)
     if plot_images_iso or plot_device or plot_images:
         plt.show()
     if sweep:
-        import pickle
-
-        with open("results_fixed_metric_plug_trimming.pickle", "wb") as file:
+        with open("denoising/results_fixed_metric_plug_trimming.pickle", "wb") as file:
             pickle.dump(results_dict, file)
     print("a")

@@ -53,8 +53,8 @@ def loop_crb_cross_point(in_crb_function, in_cross_point_array):
 
 if __name__ == '__main__':
     cam = 2
-    edge_width = 2
-    iso = 800
+    edge_width = 8
+    iso = 100
     patch_size = 32
     color_swip = False
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     cross_point_array = constants.CROSS_POINT
     input_shape = [4, patch_size, patch_size]
 
-    with open("results_edge.pickle", "rb") as file:
+    with open("new_results_edge.pickle", "rb") as file:
         data = pickle.load(file)
 
     print(f"Comparing CRB using Device:{constants.INDEX2CAM[cam]} with ISO {iso} and Edge Width:{edge_width}")
@@ -83,9 +83,10 @@ if __name__ == '__main__':
 
     plt.plot(cross_point_array, results_gaussian_crb, label="Gaussian")
     plt.plot(cross_point_array, results_nlf_crb, label="NLF")
-    plt.plot(cross_point_array, np.asarray(gcrb_db).flatten(), label="GCRB")
+    plt.plot(cross_point_array, 10*np.log10(np.asarray(gcrb_db).flatten()), label="NoiseFlow (eGCRB)")
     plt.grid()
     plt.legend()
     plt.xlabel("Edge Position")
     plt.ylabel("MSE[dB]")
+    plt.savefig("edge_position_compare_noise_model.svg")
     plt.show()
