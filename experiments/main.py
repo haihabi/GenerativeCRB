@@ -47,6 +47,8 @@ def config():
     cr.add_parameter('quantization', type=str, default="false")
     cr.add_parameter('q_bit_width', default=1, type=int)
     cr.add_parameter('q_threshold', default=1, type=int)
+    cr.add_parameter('phase_noise', type=str, default="false")
+    cr.add_parameter('phase_noise_scale', default=0.1, type=float)
     #############################################
     # Regression Network - Flow
     #############################################
@@ -80,6 +82,8 @@ def generate_model_parameter_dict(in_param) -> dict:
             constants.THETA_MIN: in_param.theta_min,
             constants.THETA_DIM: in_param.theta_dim,
             constants.QUANTIZATION: in_param.quantization,
+            constants.PHASENOISE: in_param.phase_noise,
+            constants.PHASENOISESCALE: in_param.phase_noise_scale,
             constants.BITWIDTH: in_param.q_threshold,
             constants.THRESHOLD: in_param.theta_dim,
             constants.SIGMA_N: in_param.sigma_n,
