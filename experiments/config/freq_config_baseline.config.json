@@ -15,6 +15,7 @@
   "theta_dim": 1,
   "sigma_n": 0.54,
   "quantization": false,
+  "phase_noise": false,
   "dual_flow": true,
   "neighbor_splitting": true,
   "n_epochs_flow": 120,
