@@ -19,7 +19,7 @@
   "neighbor_splitting": true,
   "n_epochs_flow": 120,
   "nf_weight_decay": 0,
-  "nf_lr": 1e-04,
+  "nf_lr": 2e-04,
   "grad_norm_clipping": 0.1,
   "n_flow_blocks": 3,
   "n_layer_cond": 3,
