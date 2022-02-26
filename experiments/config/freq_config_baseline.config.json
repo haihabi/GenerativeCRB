@@ -16,6 +16,7 @@
   "sigma_n": 0.54,
   "quantization": false,
   "dual_flow": true,
+  "neighbor_splitting": true,
   "n_epochs_flow": 120,
   "nf_weight_decay": 0,
   "nf_lr": 1e-04,
