@@ -21,8 +21,8 @@ def get_model(model_type, model_parameter_dict) -> BaseModel:
                               quantization=model_parameter_dict[constants.QUANTIZATION],
                               bit_width=model_parameter_dict[constants.BITWIDTH],
                               threshold=model_parameter_dict[constants.THRESHOLD],
-                              phase_noise=model_parameter_dict[constants.PHASENOISE],
-                              phase_noise_scale=model_parameter_dict[constants.PHASENOISESCALE])
+                              phase_noise=model_parameter_dict.get(constants.PHASENOISE,False),
+                              phase_noise_scale=model_parameter_dict.get(constants.PHASENOISESCALE,0.0))
     elif model_type == ModelType.Linear:
         return LinearModel(model_parameter_dict[constants.DIM], model_parameter_dict[constants.THETA_DIM],
                            model_parameter_dict[constants.THETA_MIN],

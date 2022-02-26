@@ -37,7 +37,7 @@ def crb_1bit_quantization(dim, amp, sigma, phase, f_0):
     fim[1, 1] = (np.sum(kap(alpha, snr)) * np.power(snr, 2.0) * 2 / math.pi)
     crb = np.linalg.inv(fim)
 
-    return 1/fim[0, 0]
+    return crb
 
 
 def build_parameter_vector(amp, freq, phase):
@@ -46,12 +46,12 @@ def build_parameter_vector(amp, freq, phase):
     return theta
 
 
-def compare_gcrb_vs_crb_over_freq(in_model, in_dm, amp, phase, freq_array):
+def compare_gcrb_vs_crb_over_freq(in_model, in_dm, amp, phase, freq_array, in_m):
     results_gcrb = []
     results_crb = []
     for f_0 in freq_array:
         theta = build_parameter_vector(amp, f_0, phase)
-        fim_optimal_back = gcrb.sampling_gfim(in_model, theta.reshape([-1]), m,
+        fim_optimal_back = gcrb.sampling_gfim(in_model, theta.reshape([-1]), in_m,
                                               batch_size=batch_size)
         egcrb = torch.linalg.inv(fim_optimal_back).detach().cpu().numpy()
         if in_dm.has_crb:
@@ -64,57 +64,75 @@ def compare_gcrb_vs_crb_over_freq(in_model, in_dm, amp, phase, freq_array):
     return results_crb, results_gcrb
 
 
+phase_noise_results_dict = {0.1: "chocolate-silence-1827",
+                            0.06: "bumbling-voice-1829",
+                            0.02: "efficient-glitter-1831"}
+quantization_results_dict = {1: "super-darkness-1849",
+                             2: "stilted-sun-1845",
+                             4: "divine-darkness-1848",
+                             6: "dry-vortex-1851"}
+
+
+def sweep_test(in_run_dict):
+    results_list = []
+    results_x_axis = []
+    for phase_scale, run_name in in_run_dict.items():
+        m, dm, _ = load_wandb_run(run_name)
+        _, results_gcrb_phase = compare_gcrb_vs_crb_over_freq(m, dm, base_amp, base_phase,
+                                                              [base_f_0], m_samples)
+
+        results_list.append(results_gcrb_phase[0, 1, 1])
+        results_x_axis.append(phase_scale)
+    return results_x_axis, results_list
+
+
 if __name__ == '__main__':
-    m = 64e3
+    m_samples = 512e3
     batch_size = 4096
     f_0_array = np.linspace(0.01, 0.49, num=50)
     common.set_seed(0)
+    base_amp = 1
+    base_phase = 0
+    base_f_0 = 0.25
 
-    one_bit_run = "sunny-mountain-1781"
-    model, dm, config = load_wandb_run(one_bit_run)
-    # crb1_array = [crb_1bit_quantization(config["dim"], 1, config["sigma_n"], 0, f_0) for f_0 in f_0_array]
-    _, results_gcrb_one_bit = compare_gcrb_vs_crb_over_freq(model, dm, 1, 0, f_0_array)
-    # # plot_all_crb(results_gcrb_one_bit, f_0_array)
-    #
-    # plt.plot(f_0_array, crb1_array, label="CRB-1Bit")
-    # plt.plot(f_0_array, results_gcrb_one_bit[:, 1, 1], label="eGCRB")
-    # plt.legend()
-    # plt.show()
-    print("a")
-    run_name = "prime-grass-1783"  # Linear Model
-
-    model, dm, config = load_wandb_run(run_name)
+    run_comapre2crb = False
+    quantization_compare = True
+    base_line_run_name = "devout-water-1825"  # Linear Model
+    base_model, dm, config = load_wandb_run(base_line_run_name)
     model_opt = dm.get_optimal_model()
+    if run_comapre2crb:
+        results_crb, results_gcrb = compare_gcrb_vs_crb_over_freq(base_model, dm, base_amp, base_phase, f_0_array,
+                                                                  m_samples)
+        re = gcrb_empirical_error(results_gcrb, results_crb)
 
-    results_crb, results_gcrb = compare_gcrb_vs_crb_over_freq(model, dm, 1, 0, f_0_array)
-    re = gcrb_empirical_error(results_gcrb, results_crb)
+        plt.plot(f_0_array, re)
+        plt.xlabel(f"$f_0$")
+        plt.ylabel(r"$\frac{||\mathrm{eGCRB}-\mathrm{CRB}||_2}{||\mathrm{CRB}||_2}$")
+        plt.grid()
+        plt.savefig("re_results.svg")
+        plt.show()
 
-    plt.plot(f_0_array, re)
-    plt.xlabel(f"$f_0$")
-    plt.ylabel(r"$\frac{||\mathrm{eGCRB}-\mathrm{CRB}||_2}{||\mathrm{CRB}||_2}$")
-    plt.grid()
-    plt.savefig("re_results.svg")
-    plt.show()
+        plt.plot(f_0_array, results_gcrb[:, 1, 1], label="eGCRB")
+        plt.plot(f_0_array, results_crb[:, 1, 1], label="CRB")
+        plt.xlabel(f"$f_0$")
+        plt.ylabel(r"$\mathrm{Var}(\hat{f_0})$")
+        plt.grid()
+        plt.legend()
+        plt.savefig("compare_egcrb_crb.svg")
 
-    plt.plot(f_0_array, results_gcrb[:, 1, 1], label="eGCRB")
-    plt.plot(f_0_array, results_crb[:, 1, 1], label="CRB")
-    plt.xlabel(f"$f_0$")
-    plt.ylabel(r"$\mathrm{Var}(\hat{f_0})$")
-    plt.grid()
+        plt.show()
+
+    results_crb_phase, results_gcrb_phase = compare_gcrb_vs_crb_over_freq(base_model, dm, base_amp, base_phase,
+                                                                          [base_f_0], m_samples)
+    gcrb_float_base_line = results_gcrb_phase[0, 1, 1]
+    crb_float_base_line = results_crb_phase[0, 1, 1]
+    print(gcrb_float_base_line, crb_float_base_line)
+    results_x_axis, results_list = sweep_test(quantization_results_dict)
+    plt.plot(results_x_axis, results_list, label="eGCRB (AWGN+Quantization)")
+    plt.plot(results_x_axis, np.ones(len(results_x_axis)) * gcrb_float_base_line, label="eGCRB (AWGN)")
     plt.legend()
-    plt.savefig("compare_egcrb_crb.svg")
-
-    plt.show()
-
-    plt.plot(f_0_array, results_gcrb[:, 1, 1], label="eGCRB")
-    plt.plot(f_0_array, results_crb[:, 1, 1], label="CRB")
-    plt.plot(f_0_array, results_gcrb_one_bit[:, 1, 1], label="eGCRB 1-Bit")
-    plt.xlabel(f"$f_0$")
-    plt.ylabel(r"$\mathrm{Var}(\hat{f_0})$")
-    plt.legend()
+    plt.xlabel("Bit-Width")
     plt.grid()
+    plt.ylabel("")
     plt.show()
-
     print("a")
-
-    # bound_thm2 = eps
