@@ -31,9 +31,9 @@ def plot_spectrum(x, eps=1e-7):
 
 
 def winner_phase_noise(batch_size, dim, scale):
-    noise = torch.zeros([batch_size, dim],device=constants.DEVICE)
+    noise = torch.zeros([batch_size, dim], device=constants.DEVICE)
     for i in range(dim - 1):
-        noise[:, i + 1] = noise[:, i] + scale * torch.randn([batch_size],device=constants.DEVICE)
+        noise[:, i + 1] = noise[:, i] + scale * torch.randn([batch_size], device=constants.DEVICE)
     return noise
 
 
@@ -61,7 +61,8 @@ class FrequencyOptimalFlow(nn.Module):
 
 
 class FrequencyComplexModel(nn.Module):
-    def __init__(self, n_samples, sigma_n, quantization_enable=False, q_bit_width=8, q_threshold=1, phase_noise=False):
+    def __init__(self, n_samples, sigma_n, quantization_enable=False, q_bit_width=8, q_threshold=1,
+                 phase_noise_scale=0.0):
         super().__init__()
         self.sigma_n = sigma_n
         self.n_samples = n_samples
@@ -72,7 +73,7 @@ class FrequencyComplexModel(nn.Module):
         self.q_bit_width = q_bit_width
         self.q_delta = 2 * q_threshold / (2 ** (self.q_bit_width) - 1)
         self.q_threshold = q_threshold
-        self.phase_noise = phase_noise
+        self.phase_noise_scale = phase_noise_scale
 
     def quantization(self, x):
         if self.quantization_enable:
@@ -90,7 +91,10 @@ class FrequencyComplexModel(nn.Module):
         batch_size = cond.shape[0]
         amp_noise = 0
         phase_noise = 0
-        white_noise = self.sigma_n * torch.randn([batch_size, self.n_samples],device=constants.DEVICE)
+
+        white_noise = self.sigma_n * torch.randn([batch_size, self.n_samples], device=constants.DEVICE)
+        if self.phase_noise_scale > 0:
+            phase_noise = winner_phase_noise(batch_size, self.n_samples, self.phase_noise_scale)
         return self.quantization(self._sine(cond[:, 0], cond[:, 1], cond[:, 2], amp_noise, phase_noise) + white_noise)
 
 
@@ -109,19 +113,23 @@ class FrequencyModel(BaseModel):
         self.quantization = quantization
         self.bit_width = bit_width
         self.threshold = threshold
+        self.phase_noise_scale = phase_noise_scale
         if self.is_optimal_exists:
             self.optimal_flow = FrequencyOptimalFlow(self.dim, self.sigma_n)
             self.data_generator = None
         else:
             self.data_generator = FrequencyComplexModel(dim, sigma_n, quantization_enable=quantization,
-                                                        q_bit_width=bit_width, q_threshold=threshold)
+                                                        q_bit_width=bit_width, q_threshold=threshold,
+                                                        phase_noise_scale=phase_noise_scale if phase_noise else 0)
             self.optimal_flow = None
 
     @property
     def name(self) -> str:
         name = f"{super().name}_{self.sigma_n}"
         if self.quantization:
-            name = name + f"_{self.bit_width}_{self.threshold}"
+            name = name + f"q_{self.bit_width}_{self.threshold}"
+        if self.phase_noise:
+            name = name + f"pn_{self.phase_noise_scale}"
 
         return name  # Append Sigma N to Name
 
