@@ -29,7 +29,8 @@ def append_k_blocks(flows, n_flow_blocks, affine_coupling, spline_flow, generate
         if affine_coupling:
             flows.append(
                 nfp.flows.AffineCoupling(x_shape=input_vector_shape, parity=i % 2,
-                                         net_class=nfp.base_nets.generate_mlp_class(non_linear_function=generate_nl),
+                                         net_class=nfp.base_nets.generate_mlp_class(non_linear_function=generate_nl,
+                                                                                    output_nl=nfp.base_nets.ScaledTanh),
                                          scale=affine_coupling_scale,
                                          neighbor_splitting=neighbor_splitting))
         if spline_flow:

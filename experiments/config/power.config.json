@@ -19,7 +19,7 @@
   "width": 32,
   "n_epochs_flow": 60,
   "nf_weight_decay": 0,
-  "nf_lr": 0.00001,
+  "nf_lr": 0.00005,
   "grad_norm_clipping": 0.1,
   "n_flow_blocks": 4,
   "n_layer_cond": 4,

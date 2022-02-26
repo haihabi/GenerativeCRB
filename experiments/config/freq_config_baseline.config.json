@@ -1,7 +1,7 @@
 {
   "dataset_size": 200000,
   "val_dataset_size": 20000,
-  "batch_size": 64,
+  "batch_size": 512,
   "n_validation_point": 20,
   "batch_size_validation": 4096,
   "group": "",
@@ -19,7 +19,7 @@
   "neighbor_splitting": true,
   "n_epochs_flow": 120,
   "nf_weight_decay": 0,
-  "nf_lr": 2e-04,
+  "nf_lr": 16e-04,
   "grad_norm_clipping": 0.1,
   "n_flow_blocks": 3,
   "n_layer_cond": 3,

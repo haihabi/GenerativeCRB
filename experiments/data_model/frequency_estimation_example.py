@@ -31,9 +31,9 @@ def plot_spectrum(x, eps=1e-7):
 
 
 def winner_phase_noise(batch_size, dim, scale):
-    noise = torch.zeros([batch_size, dim])
+    noise = torch.zeros([batch_size, dim],device=constants.DEVICE)
     for i in range(dim - 1):
-        noise[:, i + 1] = noise[:, i] + scale * torch.randn([batch_size])
+        noise[:, i + 1] = noise[:, i] + scale * torch.randn([batch_size],device=constants.DEVICE)
     return noise
 
 
@@ -90,7 +90,7 @@ class FrequencyComplexModel(nn.Module):
         batch_size = cond.shape[0]
         amp_noise = 0
         phase_noise = 0
-        white_noise = self.sigma_n * torch.randn([batch_size, self.n_samples])
+        white_noise = self.sigma_n * torch.randn([batch_size, self.n_samples],device=constants.DEVICE)
         return self.quantization(self._sine(cond[:, 0], cond[:, 1], cond[:, 2], amp_noise, phase_noise) + white_noise)
 
 
@@ -101,7 +101,8 @@ class FrequencyModel(BaseModel):
         theta_min = [MINAMP, 0.0 + FREQDELTA, PHASEMIN]
         theta_max = [MAXAMP, 0.5 - FREQDELTA, PHASEMAX]
         self.is_optimal_exists = not (quantization or phase_noise)
-        super().__init__(dim, torch.tensor(theta_min).reshape([1, -1]), torch.tensor(theta_max).reshape([1, -1]),
+        super().__init__(dim, torch.tensor(theta_min, device=constants.DEVICE).reshape([1, -1]),
+                         torch.tensor(theta_max, device=constants.DEVICE).reshape([1, -1]),
                          theta_dim=len(theta_min), quantized=quantization, has_crb=self.is_optimal_exists)
         self.sigma_n = sigma_n
         self.phase_noise = phase_noise

@@ -157,7 +157,7 @@ if __name__ == '__main__':
     dataset_vs_testset_checking(dm, validation_data)
     trimming_parameters = calculate_trimming_parameter(training_data, run_parameters.trimming_p)
     wandb.config.update(trimming_parameters.as_dict())  # Adding trimming parameters to config
-    trimming_module = gcrb.AdaptiveTrimming(trimming_parameters, run_parameters.trimming_type)
+    trimming_module = gcrb.AdaptiveTrimming(trimming_parameters, run_parameters.trimming_type).to(constants.DEVICE)
 
     training_dataset_loader = torch.utils.data.DataLoader(training_data, batch_size=run_parameters.batch_size,
                                                           shuffle=True, num_workers=4, pin_memory=True)
