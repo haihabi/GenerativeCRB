@@ -1,7 +1,9 @@
 #python experiments/main.py --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.5
-python experiments/main.py --quantization true --q_bit_width 2 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.5
-python experiments/main.py --quantization true --q_bit_width 4 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.5
-python experiments/main.py --quantization true --q_bit_width 6 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.5
+#python experiments/main.py --quantization true --q_bit_width 2 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.5
+#python experiments/main.py --quantization true --q_bit_width 4 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.5
+#python experiments/main.py --quantization true --q_bit_width 6 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.5
+python experiments/main.py --quantization true --q_bit_width 3 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.5
+python experiments/main.py --quantization true --q_bit_width 8 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.5
 #python experiments/main.py --quantization true --q_bit_width 4 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 1
 #python experiments/main.py --quantization true --q_bit_width 4 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.707
 #python experiments/main.py --quantization true --q_bit_width 4 --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.408
