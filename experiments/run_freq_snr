@@ -12,3 +12,4 @@ python experiments/main.py --config /data/projects/GenerativeCRB/experiments/con
 python experiments/main.py --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.408
 python experiments/main.py --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.358
 python experiments/main.py --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.25
+python experiments/main.py --config /data/projects/GenerativeCRB/experiments/config/freq_config_baseline.config.json --sigma_n 0.1
