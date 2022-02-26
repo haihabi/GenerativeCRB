@@ -66,9 +66,11 @@ def compare_gcrb_vs_crb_over_freq(in_model, in_dm, amp, phase, freq_array, in_m)
 
 phase_noise_results_dict = {0.1: "chocolate-silence-1827",
                             0.06: "bumbling-voice-1829",
+                            0.04: "rare-monkey-1846",
                             0.02: "efficient-glitter-1831"}
 quantization_results_dict = {1: "super-darkness-1849",
                              2: "stilted-sun-1845",
+                             3: "lyric-night-1852",
                              4: "divine-darkness-1848",
                              6: "dry-vortex-1851"}
 
