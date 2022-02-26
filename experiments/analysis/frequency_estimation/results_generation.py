@@ -72,16 +72,16 @@ if __name__ == '__main__':
 
     one_bit_run = "sunny-mountain-1781"
     model, dm, config = load_wandb_run(one_bit_run)
-    crb1_array = [crb_1bit_quantization(config["dim"], 1, config["sigma_n"], 0, f_0) for f_0 in f_0_array]
-    results_crb, results_gcrb_one_bit = compare_gcrb_vs_crb_over_freq(model, dm, 1, 0, f_0_array)
-    # plot_all_crb(results_gcrb_one_bit, f_0_array)
-
-    plt.plot(f_0_array, crb1_array, label="CRB-1Bit")
-    plt.plot(f_0_array, results_gcrb_one_bit[:, 1, 1], label="eGCRB")
-    plt.legend()
-    plt.show()
+    # crb1_array = [crb_1bit_quantization(config["dim"], 1, config["sigma_n"], 0, f_0) for f_0 in f_0_array]
+    _, results_gcrb_one_bit = compare_gcrb_vs_crb_over_freq(model, dm, 1, 0, f_0_array)
+    # # plot_all_crb(results_gcrb_one_bit, f_0_array)
+    #
+    # plt.plot(f_0_array, crb1_array, label="CRB-1Bit")
+    # plt.plot(f_0_array, results_gcrb_one_bit[:, 1, 1], label="eGCRB")
+    # plt.legend()
+    # plt.show()
     print("a")
-    run_name = "neat-glade-1770"  # Linear Model
+    run_name = "prime-grass-1783"  # Linear Model
 
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
