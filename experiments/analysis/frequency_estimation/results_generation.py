@@ -179,12 +179,13 @@ if __name__ == '__main__':
         surf = ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.coolwarm,
                                linewidth=0, antialiased=False, shade=False,
                                label="eGCRB (Quantization+Phase Noise+AWGN)")
-        surf = ax.plot_surface(x, y, np.ones(z.shape) * 10 * np.log10(gcrb_float_base_line), rstride=1, cstride=1,
-                               color="green",
+        _ = ax.plot_surface(x, y, np.ones(z.shape) * 10 * np.log10(gcrb_float_base_line), rstride=1, cstride=1,
+                               cmap=cm.coolwarm,
                                linewidth=0, antialiased=False, shade=False, label="eGCRB (AWGN)")
         # plt.legend()
-
-        ax.view_init(30, 90 + 45)
+        # Add a color bar which maps values to colors.
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+        ax.view_init(30, 90 + 45 + 35)
         plt.savefig("quantization_phase_results.svg")
         plt.show()
 
