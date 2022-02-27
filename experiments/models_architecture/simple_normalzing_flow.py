@@ -33,7 +33,7 @@ def append_k_blocks(flows, n_flow_blocks, affine_coupling, spline_flow, generate
                                          scale=affine_coupling_scale,
                                          neighbor_splitting=neighbor_splitting))
         if spline_flow:
-            flows.append(nfp.flows.NSF_CL(dim=dim, K=spline_k, B=spline_b,
+            flows.append(nfp.flows.CSF_CL(dim=dim, K=spline_k, B=spline_b,
                                           base_network=nfp.base_nets.generate_mlp_class(
                                               non_linear_function=generate_nl)))
 
