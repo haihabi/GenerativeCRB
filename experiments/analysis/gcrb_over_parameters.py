@@ -7,12 +7,14 @@ from experiments.data_model.linear_example import LinearModel
 
 if __name__ == '__main__':
     run_name = "fiery-bush-1640"  # Linear Model
+    run_name = "electric-cherry-1891"  # Linear Model
     n_samples = 64e3
     common.set_seed(0)
     model, dm, config = load_wandb_run(run_name)
     model_opt = dm.get_optimal_model()
     batch_size = 4096
-    zoom = True
+    model_name = str(type(dm)).split(".")[-1].split("'")[0]
+    zoom = isinstance(dm, LinearModel)
     eps = 0.01
 
     check_func = generate_gcrb_validation_function(dm, None, batch_size, optimal_model=model_opt,
@@ -32,7 +34,7 @@ if __name__ == '__main__':
     plt.xlabel(r"$\xi$")
     plt.ylabel(r"$\frac{||\overline{\mathrm{GCRB}}-\mathrm{CRB}||_2}{||\mathrm{CRB}||_2}$")
     # plt.gca().set_position([0, 0, 1, 1])
-    plt.savefig("re_results.svg")
+    plt.savefig(f"re_results_{model_name}.svg")
 
     plt.show()
 
@@ -65,5 +67,5 @@ if __name__ == '__main__':
         axins.set_yticklabels([])
         #
         ax.indicate_inset_zoom(axins, edgecolor="black")
-    plt.savefig("trace_results.svg")
+    plt.savefig(f"trace_results_{model_name}.svg")
     plt.show()

@@ -7,6 +7,11 @@ from experiments.analysis.analysis_helpers import load_wandb_run, db
 import gcrb
 import torch
 from scipy.special import erf
+from matplotlib import cm
+from matplotlib.colors import LightSource
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import cm
 
 models_dict = {0: "easy-snowflake-1688"}
 
@@ -50,6 +55,42 @@ def compare_gcrb_vs_crb_over_freq(in_model, in_dm, amp, phase, freq_array, in_m)
     results_gcrb = []
     results_crb = []
     for f_0 in freq_array:
+        theta = build_parameter_vector(amp, f_0, phase)
+        fim_optimal_back = gcrb.sampling_gfim(in_model, theta.reshape([-1]), in_m,
+                                              batch_size=batch_size)
+        egcrb = torch.linalg.inv(fim_optimal_back).detach().cpu().numpy()
+        if in_dm.has_crb:
+            crb = in_dm.crb(theta).detach().cpu().numpy()
+            results_crb.append(crb)
+        results_gcrb.append(egcrb)
+    if in_dm.has_crb:
+        results_crb = np.stack(results_crb)
+    results_gcrb = np.stack(results_gcrb)
+    return results_crb, results_gcrb
+
+
+def compare_gcrb_vs_crb_over_phase(in_model, in_dm, amp, phase_array, f_0, in_m):
+    results_gcrb = []
+    results_crb = []
+    for phase in phase_array:
+        theta = build_parameter_vector(amp, f_0, phase)
+        fim_optimal_back = gcrb.sampling_gfim(in_model, theta.reshape([-1]), in_m,
+                                              batch_size=batch_size)
+        egcrb = torch.linalg.inv(fim_optimal_back).detach().cpu().numpy()
+        if in_dm.has_crb:
+            crb = in_dm.crb(theta).detach().cpu().numpy()
+            results_crb.append(crb)
+        results_gcrb.append(egcrb)
+    if in_dm.has_crb:
+        results_crb = np.stack(results_crb)
+    results_gcrb = np.stack(results_gcrb)
+    return results_crb, results_gcrb
+
+
+def compare_gcrb_vs_crb_over_amp(in_model, in_dm, amp_array, phase, f_0, in_m):
+    results_gcrb = []
+    results_crb = []
+    for amp in amp_array:
         theta = build_parameter_vector(amp, f_0, phase)
         fim_optimal_back = gcrb.sampling_gfim(in_model, theta.reshape([-1]), in_m,
                                               batch_size=batch_size)
@@ -125,16 +166,16 @@ def dual_sweep(in_run_dict):
 if __name__ == '__main__':
     m_samples = 64e3
     batch_size = 4096
-    f_0_array = np.linspace(0.01, 0.49, num=50)
+
     common.set_seed(0)
     base_amp = 1
     base_phase = 0
     base_f_0 = 0.25
 
-    run_comapre2crb = False
+    run_comapre2crb = True
     phase_noise_results = False
     quantization_results = False
-    dual_results = True
+    dual_results = False
     base_line_run_name = "devout-water-1825"  # Linear Model
     base_model, dm, config = load_wandb_run(base_line_run_name)
     model_opt = dm.get_optimal_model()
@@ -143,31 +184,17 @@ if __name__ == '__main__':
                                                                           [base_f_0], m_samples)
     gcrb_float_base_line = results_gcrb_phase[0, 1, 1]
     crb_float_base_line = results_crb_phase[0, 1, 1]
-    print(gcrb_float_base_line, crb_float_base_line)
     if dual_results:
         x_list, y_list, res_list = dual_sweep(ph_q_run_dict)
         y_array = np.asarray(y_list)
         x_array = np.asarray(x_list)
         res_arary = np.asarray(res_list)
-        from matplotlib import cbook
-        from matplotlib import cm
-        from matplotlib.colors import LightSource
-        import matplotlib.pyplot as plt
-        import numpy as np
 
-        # Load and format data
-        # dem = cbook.get_sample_data('jacksboro_fault_dem.npz', np_load=True)
-        z = 10 * np.log10(res_arary)
+        z = db(res_arary)
         nrows, ncols = z.shape
-        # x = np.linspace(dem['xmin'], dem['xmax'], ncols)
-        # y = np.linspace(dem['ymin'], dem['ymax'], nrows)
-        # x, y = np.meshgrid(x, y)
+
         x = x_array
         y = y_array
-
-        # region = np.s_[5:50, 5:50]
-        # x, y, z = x[region], y[region], z[region]
-        from matplotlib import cm
 
         # Set up plot
         fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
@@ -179,11 +206,14 @@ if __name__ == '__main__':
         surf = ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.coolwarm,
                                linewidth=0, antialiased=False, shade=False,
                                label="eGCRB (Quantization+Phase Noise+AWGN)")
-        _ = ax.plot_surface(x, y, np.ones(z.shape) * 10 * np.log10(gcrb_float_base_line), rstride=1, cstride=1,
-                               cmap=cm.coolwarm,
-                               linewidth=0, antialiased=False, shade=False, label="eGCRB (AWGN)")
+        _ = ax.plot_surface(x, y, np.ones(z.shape) * db(gcrb_float_base_line), rstride=1, cstride=1,
+                            cmap=cm.coolwarm,
+                            linewidth=0, antialiased=False, shade=False, label="eGCRB (AWGN)")
         # plt.legend()
         # Add a color bar which maps values to colors.
+        ax.set_xlabel(r"$\alpha$")
+        ax.set_ylabel(r"$n_b$")
+        ax.set_zlabel(r"$\mathrm{Var}(\hat{f_0})[dB]$")
         fig.colorbar(surf, shrink=0.5, aspect=5)
         ax.view_init(30, 90 + 45 + 35)
         plt.savefig("quantization_phase_results.svg")
@@ -191,43 +221,65 @@ if __name__ == '__main__':
 
         print("a")
     if run_comapre2crb:
-        results_crb, results_gcrb = compare_gcrb_vs_crb_over_freq(base_model, dm, base_amp, base_phase, f_0_array,
-                                                                  m_samples)
-        re = gcrb_empirical_error(results_gcrb, results_crb)
+        name = ["amp", "freq", "phase"]
+        x_axis_name = [f"$A$", f"$f_0$", f"$\phi$"]
+        y_axis_name = [r"$\mathrm{Var}(\hat{A})$", r"$\mathrm{Var}(\hat{f_0})$", r"$\mathrm{Var}(\hat{\phi})$"]
+        for i in range(3):
+            if i == 0:
+                amp_array = np.linspace(0.81, 1.19, num=50)
+                x_axis_array = amp_array
+                results_crb, results_gcrb = compare_gcrb_vs_crb_over_amp(base_model, dm, amp_array, base_phase,
+                                                                         base_f_0,
+                                                                         m_samples)
+            elif i == 1:
+                f_0_array = np.linspace(0.01, 0.49, num=50)
+                x_axis_array = f_0_array
+                results_crb, results_gcrb = compare_gcrb_vs_crb_over_freq(base_model, dm, base_amp, base_phase,
+                                                                          f_0_array,
+                                                                          m_samples)
+            elif i == 2:
+                phase_array = np.linspace(0.01, 2 * math.pi - 0.01, num=50)
+                x_axis_array = phase_array
+                results_crb, results_gcrb = compare_gcrb_vs_crb_over_phase(base_model, dm, base_amp, phase_array,
+                                                                           base_f_0,
+                                                                           m_samples)
+            else:
+                raise NotImplemented
+            re = gcrb_empirical_error(results_gcrb, results_crb)
 
-        plt.plot(f_0_array, re)
-        plt.xlabel(f"$f_0$")
-        plt.ylabel(r"$\frac{||\mathrm{eGCRB}-\mathrm{CRB}||_2}{||\mathrm{CRB}||_2}$")
-        plt.grid()
-        plt.savefig("re_results.svg")
-        plt.show()
+            plt.plot(x_axis_array, re)
+            plt.xlabel(x_axis_name[i])
+            plt.ylabel(r"$\frac{||\mathrm{GCRB}-\mathrm{CRB}||_2}{||\mathrm{CRB}||_2}$")
+            plt.grid()
+            plt.savefig(f"re_results_{name[i]}.svg")
+            plt.show()
 
-        plt.plot(f_0_array, results_gcrb[:, 1, 1], label="eGCRB")
-        plt.plot(f_0_array, results_crb[:, 1, 1], label="CRB")
-        plt.xlabel(f"$f_0$")
-        plt.ylabel(r"$\mathrm{Var}(\hat{f_0})$")
-        plt.grid()
-        plt.legend()
-        plt.savefig("compare_egcrb_crb.svg")
+            plt.plot(x_axis_array, db(results_gcrb[:, i, i]), label="eGCRB")
+            plt.plot(x_axis_array, db(results_crb[:, i, i]), label="CRB")
+            plt.xlabel(x_axis_name[i])
+            plt.ylabel(r"$\mathrm{Var}(\hat{f_0})[dB]$")
+            plt.grid()
+            plt.legend()
+            plt.savefig(f"compare_egcrb_crb_{name[i]}.svg")
+            plt.show()
 
-        plt.show()
     if quantization_results:
         results_x_axis, results_list = sweep_test(quantization_results_dict)
-        plt.plot(results_x_axis, results_list, label="eGCRB (AWGN+Quantization)")
-        plt.plot(results_x_axis, np.ones(len(results_x_axis)) * gcrb_float_base_line, label="eGCRB (AWGN)")
+        plt.plot(results_x_axis, db(results_list), label="eGCRB (AWGN+Quantization)")
+        plt.plot(results_x_axis, db(np.ones(len(results_x_axis)) * gcrb_float_base_line), label="eGCRB (AWGN)")
         plt.legend()
-        plt.xlabel("Bit-Width")
-        plt.ylabel(r"$\mathrm{Var}(\hat{f_0})$")
+        plt.xlabel(r"$n_b$")
+        plt.ylabel(r"$\mathrm{Var}(\hat{f_0})[dB]$")
         plt.grid()
         plt.savefig("quantization_egcrb.svg")
         plt.show()
     if phase_noise_results:
         results_x_axis, results_list = sweep_test(phase_noise_results_dict)
-        plt.plot(results_x_axis, results_list, label="eGCRB (AWGN+Phase Noise)")
-        plt.plot(results_x_axis, np.ones(len(results_x_axis)) * gcrb_float_base_line, label="eGCRB (AWGN)")
+        plt.plot(results_x_axis, db(results_list), label="eGCRB (AWGN+Phase Noise)")
+        plt.plot(results_x_axis, db(np.ones(len(results_x_axis)) * gcrb_float_base_line), label="eGCRB (AWGN)")
         plt.legend()
         plt.xlabel(r"$\alpha$")
-        plt.ylabel(r"$\mathrm{Var}(\hat{f_0})$")
+        plt.ylabel(r"$\mathrm{Var}(\hat{f_0})[dB]$")
         plt.grid()
         plt.savefig("phase_noise_egcrb.svg")
         plt.show()
