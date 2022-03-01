@@ -192,18 +192,25 @@ if __name__ == '__main__':
     # pn = power_law_noise(1, 20, 1e-4, h)[0, :]
     # print(pn)
     # fcm = FrequencyComplexModel(80, 1.2, quantization_enable=False, q_bit_width=2, q_threshold=1.0)
-    cond = [1, 0.2, 0]
-    cond = torch.tensor(cond).reshape([1, -1])
+    # cond = [1, 0.06, 0]
+    # cond = torch.tensor(cond).reshape([1, -1])
+    # # x = fcm(cond)[0, :]
+    # #
+    # # plt.plot(x.cpu().numpy())
+    # fcm = FrequencyComplexModel(40, 0.2, quantization_enable=True, q_bit_width=3, q_threshold=1.0)
     # x = fcm(cond)[0, :]
-    #
-    # plt.plot(x.cpu().numpy())
-    fcm = FrequencyComplexModel(40, 0.4, quantization_enable=True, q_bit_width=4, q_threshold=1.0)
-    x = fcm(cond)[0, :]
-    plt.plot(x.cpu().numpy(), "-x")
+    # plt.plot(x.cpu().numpy(), "-o")
+    # plt.grid()
+    # plt.xlabel("n")
+    # plt.ylabel("y[n]")
+    # plt.savefig("noisy_sine.svg")
+    # plt.show()
+    z = np.random.randn(40)
+    plt.plot(z, "-o")
     plt.grid()
     plt.xlabel("n")
-    plt.ylabel("y[n]")
-    plt.savefig("noisy_sine.svg")
+    plt.ylabel("z[n]")
+    plt.savefig("latent.svg")
     plt.show()
 
     # pn = torch.randn([1, 40])[0, :]

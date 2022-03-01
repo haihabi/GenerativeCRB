@@ -4,9 +4,8 @@ import os
 from experiments import constants
 import torch
 from experiments import data_model
-import normflowpy as nfp
 import pickle
-
+import gcrb
 from experiments.main import generate_flow_model
 
 META_FILE = "metadata_edge.pickle"
@@ -58,6 +57,7 @@ def get_data_model(in_config):
                 constants.THETA_MIN: in_config[constants.THETA_MIN],
                 constants.THETA_DIM: in_config.get(constants.THETA_DIM, 1),
                 constants.QUANTIZATION: in_config.get(constants.QUANTIZATION, False),
+                constants.PHASENOISE:in_config.get(constants.PHASENOISE,False),
                 constants.BITWIDTH: in_config.get("q_bit_width", 8),
                 constants.THRESHOLD: in_config.get("q_threshold", 1),
                 constants.SIGMA_N: in_config[constants.SIGMA_N],
@@ -90,19 +90,19 @@ def load_wandb_run(run_name):
                                              sine_layer=config.get("sine_flow", False),
                                              dual_flow=config.get("dual_flow", False),
                                              neighbor_splitting=config.get("neighbor_splitting", False))
-            # TODO: Read from parameters
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
             model_flow = model_flow.to(constants.DEVICE).eval()
-            # for flow in model_flow.flow.flows:
-            #     if isinstance(flow, nfp.flows.ActNorm):
-            #         flow.data_dep_init_done = True
-
+            data_mean_temp = [t.split("\n")[0].split("]]")[0].split("[[")[-1] for t in
+                              config["trimming_mean"].split(" ")]
+            data_mean = np.asarray([float(b) for b in data_mean_temp if len(b) > 0])
+            trimming_max = config["trimming_b_max"]
+            trimming_percentile = config["trimming_b_percentile"]
             if model_type == data_model.ModelType.Linear:
                 if os.path.isfile(f"{dm.model_name}_model.pt"):
                     os.remove(f"{dm.model_name}_model.pt")
                 run.file(f"{dm.model_name}_model.pt").download()
                 dm.load_data_model("")
-            return model_flow, dm, config
+            return model_flow, dm, config, gcrb.TrimmingParameters(data_mean, trimming_max, trimming_percentile)
 
 
 def db(x):

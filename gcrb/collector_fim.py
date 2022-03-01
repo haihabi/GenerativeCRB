@@ -16,7 +16,8 @@ class FisherInformationMatrixCollector(nn.Module):
 
     def append_fim(self, batch_fim, batch_score_vector):
         with torch.no_grad():
-            index = torch.logical_not(torch.any(torch.any(batch_fim.isnan(), dim=2), dim=1))
+            index = torch.logical_not(
+                torch.any(torch.any(torch.logical_or(batch_fim.isinf(), batch_fim.isnan()), dim=2), dim=1))
             batch_fim = batch_fim[index, :]  # Clear non values
             # batch_score_vector = torch.squeeze(batch_score_vector[index, :], dim=1)
             # self.score_norm_list.append(torch.sum(torch.pow(batch_score_vector, 2.0), dim=-1))

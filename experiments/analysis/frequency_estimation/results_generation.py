@@ -57,7 +57,7 @@ def compare_gcrb_vs_crb_over_freq(in_model, in_dm, amp, phase, freq_array, in_m)
     for f_0 in freq_array:
         theta = build_parameter_vector(amp, f_0, phase)
         fim_optimal_back = gcrb.sampling_gfim(in_model, theta.reshape([-1]), in_m,
-                                              batch_size=batch_size)
+                                              batch_size=batch_size, temperature=1.0)
         egcrb = torch.linalg.inv(fim_optimal_back).detach().cpu().numpy()
         if in_dm.has_crb:
             crb = in_dm.crb(theta).detach().cpu().numpy()
@@ -75,7 +75,7 @@ def compare_gcrb_vs_crb_over_phase(in_model, in_dm, amp, phase_array, f_0, in_m)
     for phase in phase_array:
         theta = build_parameter_vector(amp, f_0, phase)
         fim_optimal_back = gcrb.sampling_gfim(in_model, theta.reshape([-1]), in_m,
-                                              batch_size=batch_size)
+                                              batch_size=batch_size, temperature=1.0)
         egcrb = torch.linalg.inv(fim_optimal_back).detach().cpu().numpy()
         if in_dm.has_crb:
             crb = in_dm.crb(theta).detach().cpu().numpy()
@@ -87,13 +87,13 @@ def compare_gcrb_vs_crb_over_phase(in_model, in_dm, amp, phase_array, f_0, in_m)
     return results_crb, results_gcrb
 
 
-def compare_gcrb_vs_crb_over_amp(in_model, in_dm, amp_array, phase, f_0, in_m):
+def compare_gcrb_vs_crb_over_amp(in_model, in_dm, amp_array, phase, f_0, in_m, in_trimming):
     results_gcrb = []
     results_crb = []
     for amp in amp_array:
         theta = build_parameter_vector(amp, f_0, phase)
         fim_optimal_back = gcrb.sampling_gfim(in_model, theta.reshape([-1]), in_m,
-                                              batch_size=batch_size)
+                                              batch_size=batch_size, trimming_step=in_trimming, temperature=1.0)
         egcrb = torch.linalg.inv(fim_optimal_back).detach().cpu().numpy()
         if in_dm.has_crb:
             crb = in_dm.crb(theta).detach().cpu().numpy()
@@ -105,15 +105,42 @@ def compare_gcrb_vs_crb_over_amp(in_model, in_dm, amp_array, phase, f_0, in_m):
     return results_crb, results_gcrb
 
 
-phase_noise_results_dict = {0.1: "chocolate-silence-1827",
-                            0.08: "eager-pond-1859",
-                            0.06: "bumbling-voice-1829",
-                            0.04: "rare-monkey-1846",
-                            0.02: "efficient-glitter-1831"}
-quantization_results_dict = {1: "super-darkness-1849",
-                             2: "stilted-sun-1845",
-                             3: "lyric-night-1852",
-                             4: "divine-darkness-1848"}
+phase_noise_results_dict = {0.5: {4: "prime-snow-1931",
+                                  0.1: "chocolate-silence-1827",
+                                  0.08: "eager-pond-1859",
+                                  0.06: "bumbling-voice-1829",
+                                  0.04: "rare-monkey-1846",
+                                  0.02: "efficient-glitter-1831",
+                                  0.01: "misunderstood-blaze-1870"},
+                            1.0: {0.1: "worldly-lake-1911",
+                                  0.08: "desert-yogurt-1912",
+                                  0.06: "unique-gorge-1913",
+                                  0.04: "icy-dust-1914",
+                                  0.02: "balmy-sea-1915",
+                                  0.01: "misty-valley-1916"},
+                            0.25: {0.1: "zany-morning-1905",
+                                   0.08: "volcanic-silence-1906",
+                                   0.06: "crimson-firefly-1907",
+                                   0.04: "legendary-wind-1908",
+                                   0.02: "divine-universe-1909",
+                                   0.01: "light-brook-1910"}
+                            }
+quantization_results_dict = {0.25: {1: "sparkling-firebrand-1917",
+                                    2: "different-wave-1899",
+                                    3: "summer-wave-1902",
+                                    4: "skilled-cosmos-1900"},
+                             0.5: {1: "super-darkness-1849",
+                                   2: "stilted-sun-1845",
+                                   3: "lyric-night-1852",
+                                   4: "divine-darkness-1848"},
+                             1.0: {2: "bumbling-water-1893",
+                                   3: "dry-morning-1896",
+                                   4: "sweet-yogurt-1894"},
+                             }
+
+snr_base_line = {0.25: "warm-serenity-1918",
+                 0.5: "devout-water-1825",
+                 1.0: "blooming-jazz-1919"}
 
 ph_q_run_dict = {1: {0.1: "lemon-cherry-1853",
                      0.08: "lucky-pine-1858",
@@ -137,12 +164,26 @@ ph_q_run_dict = {1: {0.1: "lemon-cherry-1853",
                      0.02: "peach-spaceship-1880"}
                  }
 
+snr_phase_noise = {
+    0.01: "morning-planet-1924",
+    0.25: "crimson-firefly-1907",
+    0.5: "bumbling-voice-1829",
+    1.0: "unique-gorge-1913"}
+only_phase_noise = "neat-pyramid-1920"
+
+quantization_full = {1: "sparkling-firebrand-1917",
+                     2: "different-wave-1899",
+                     3: "summer-wave-1902",
+                     4: "skilled-cosmos-1900",
+                     5: "effortless-bush-1901",
+                     8: "exalted-pond-1903"}
+
 
 def sweep_test(in_run_dict):
     results_list = []
     results_x_axis = []
     for phase_scale, run_name in in_run_dict.items():
-        m, dm, _ = load_wandb_run(run_name)
+        m, dm, _, _ = load_wandb_run(run_name)
         _, results_gcrb_phase = compare_gcrb_vs_crb_over_freq(m, dm, base_amp, base_phase,
                                                               [base_f_0], m_samples)
 
@@ -169,21 +210,42 @@ if __name__ == '__main__':
 
     common.set_seed(0)
     base_amp = 1
-    base_phase = 0
-    base_f_0 = 0.25
+    base_phase = 1
+    base_f_0 = 0.2
 
-    run_comapre2crb = True
-    phase_noise_results = False
-    quantization_results = False
+    run_quantization_full = False
+    run_comapre2crb = False
+    phase_noise_results = True
+    quantization_results = False or run_quantization_full
     dual_results = False
-    base_line_run_name = "devout-water-1825"  # Linear Model
-    base_model, dm, config = load_wandb_run(base_line_run_name)
-    model_opt = dm.get_optimal_model()
+    snr_results_phase = False
+    base_line_run_name = snr_base_line[0.25]  # Linear Model
 
+    base_model, dm, config, tp = load_wandb_run(base_line_run_name)
+    trimming_model = gcrb.AdaptiveTrimming(tp, gcrb.TrimmingType.MAX)
+
+    model_opt = dm.get_optimal_model()
     results_crb_phase, results_gcrb_phase = compare_gcrb_vs_crb_over_freq(base_model, dm, base_amp, base_phase,
                                                                           [base_f_0], m_samples)
     gcrb_float_base_line = results_gcrb_phase[0, 1, 1]
     crb_float_base_line = results_crb_phase[0, 1, 1]
+    if snr_results_phase:
+        phase_noise_only_model, dm, _, _ = load_wandb_run(only_phase_noise)
+        # trimming_model = gcrb.AdaptiveTrimming(tp, gcrb.TrimmingType.MAX)
+
+        # model_opt = dm.get_optimal_model()
+        results_crb_phase, results_gcrb_phase = compare_gcrb_vs_crb_over_freq(phase_noise_only_model, dm, base_amp,
+                                                                              base_phase,
+                                                                              [base_f_0], m_samples)
+        results_x_axis, results_list = sweep_test(snr_phase_noise)
+        snr = -10 * np.log10(np.asarray(results_x_axis))
+
+        plt.plot(snr, results_list)
+        plt.plot(snr, np.ones(len(results_x_axis)) * results_gcrb_phase[0, 1, 1])
+
+        plt.show()
+        print("a")
+
     if dual_results:
         x_list, y_list, res_list = dual_sweep(ph_q_run_dict)
         y_array = np.asarray(y_list)
@@ -230,7 +292,7 @@ if __name__ == '__main__':
                 x_axis_array = amp_array
                 results_crb, results_gcrb = compare_gcrb_vs_crb_over_amp(base_model, dm, amp_array, base_phase,
                                                                          base_f_0,
-                                                                         m_samples)
+                                                                         m_samples, trimming_model)
             elif i == 1:
                 f_0_array = np.linspace(0.01, 0.49, num=50)
                 x_axis_array = f_0_array
@@ -246,6 +308,7 @@ if __name__ == '__main__':
             else:
                 raise NotImplemented
             re = gcrb_empirical_error(results_gcrb, results_crb)
+            print(np.mean(re), np.max(re))
 
             plt.plot(x_axis_array, re)
             plt.xlabel(x_axis_name[i])
@@ -264,19 +327,46 @@ if __name__ == '__main__':
             plt.show()
 
     if quantization_results:
-        results_x_axis, results_list = sweep_test(quantization_results_dict)
-        plt.plot(results_x_axis, db(results_list), label="eGCRB (AWGN+Quantization)")
-        plt.plot(results_x_axis, db(np.ones(len(results_x_axis)) * gcrb_float_base_line), label="eGCRB (AWGN)")
-        plt.legend()
+        if run_quantization_full:
+            quantization_results_dict = {0.25: quantization_full}
+        for sigma, v in quantization_results_dict.items():
+            base_line_run_name = snr_base_line[sigma]  # Linear Model
+            base_model, dm, config, tp = load_wandb_run(base_line_run_name)
+            results_crb_phase, results_gcrb_phase_base = compare_gcrb_vs_crb_over_freq(base_model, dm, base_amp,
+                                                                                       base_phase,
+                                                                                       [base_f_0], m_samples)
+            snr = max(-np.round(10 * np.log10(np.power(sigma, 2.0))), 0)
+            gcrb_float_base_line = results_gcrb_phase_base[0, 1, 1]
+            crb_float_base_line = results_crb_phase[0, 1, 1]
+            base = min(crb_float_base_line, gcrb_float_base_line)
+
+            results_x_axis, results_list = sweep_test(v)
+            print(results_list)
+            plt.plot(np.asarray(results_x_axis), db(results_list), label=f"AWGN+Q, SNR={snr}dB")
+            plt.plot(results_x_axis, db(np.ones(len(results_x_axis)) * base), "--",
+                     label=f"AWGN, SNR={snr}dB")
+        plt.legend(loc='upper left')
         plt.xlabel(r"$n_b$")
         plt.ylabel(r"$\mathrm{Var}(\hat{f_0})[dB]$")
         plt.grid()
         plt.savefig("quantization_egcrb.svg")
         plt.show()
     if phase_noise_results:
-        results_x_axis, results_list = sweep_test(phase_noise_results_dict)
-        plt.plot(results_x_axis, db(results_list), label="eGCRB (AWGN+Phase Noise)")
-        plt.plot(results_x_axis, db(np.ones(len(results_x_axis)) * gcrb_float_base_line), label="eGCRB (AWGN)")
+        for sigma, v in phase_noise_results_dict.items():
+            base_line_run_name = snr_base_line[sigma]  # Linear Model
+            base_model, dm, config, tp = load_wandb_run(base_line_run_name)
+            results_crb_phase, results_gcrb_phase_base = compare_gcrb_vs_crb_over_freq(base_model, dm, base_amp,
+                                                                                       base_phase,
+                                                                                       [base_f_0], m_samples)
+            snr = max(-np.round(10 * np.log10(np.power(sigma, 2.0))), 0)
+            gcrb_float_base_line = results_gcrb_phase_base[0, 1, 1]
+            crb_float_base_line = results_crb_phase[0, 1, 1]
+            base = min(crb_float_base_line, gcrb_float_base_line)
+
+            results_x_axis, results_list = sweep_test(v)
+            x_axis = np.array(results_x_axis) * 180 / np.pi
+            plt.semilogy(results_x_axis, results_list, label=f"AWGN+PN, SNR={snr}dB")
+            plt.semilogy(results_x_axis, np.ones(len(results_x_axis)) * base, "--", label=f"AWGN, SNR={snr}dB")
         plt.legend()
         plt.xlabel(r"$\alpha$")
         plt.ylabel(r"$\mathrm{Var}(\hat{f_0})[dB]$")

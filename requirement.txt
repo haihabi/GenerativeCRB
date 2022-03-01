@@ -2,3 +2,4 @@ numpy
 wandb
 matplotlib
 tqdm
+torch

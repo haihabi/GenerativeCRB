@@ -17,12 +17,13 @@ def jacobian_single(out_gen, z, create_graph=False):
     return torch.stack(grad_list, dim=-1).transpose(-1, -2)
 
 
-def compute_fim_tensor_model(in_model, in_theta_tensor, batch_size=128, score_vector=False, trimming_step=None):
+def compute_fim_tensor_model(in_model, in_theta_tensor, batch_size=128, score_vector=False, trimming_step=None,
+                             temperature=1.0):
     theta_tensor = in_theta_tensor * torch.ones([batch_size, in_theta_tensor.shape[0]], requires_grad=True,
                                                 device=constants.DEVICE)
 
     def sample_func(in_batch_size, in_theta_tensor_hat: torch.Tensor):
-        gamma = in_model.sample(in_batch_size, cond=in_theta_tensor_hat)
+        gamma = in_model.sample(in_batch_size, cond=in_theta_tensor_hat, temperature=temperature)
         gamma = gamma.detach()
         if trimming_step is not None:
             trimming_status = trimming_step(gamma)
@@ -44,16 +45,12 @@ def compute_fim_tensor_sample_function(sample_func, in_theta_tensor, batch_size=
     return gfim
 
 
-def compute_fim_tensor(model, in_theta_tensor, batch_size=128, score_vector=False, trimming_step=None):
+def compute_fim_tensor(model, in_theta_tensor, batch_size=128, score_vector=False, trimming_step=None, temperature=1.0):
     if isinstance(model, nf.NormalizingFlowModel):
         return compute_fim_tensor_model(model, in_theta_tensor, batch_size=batch_size, score_vector=score_vector,
-                                        trimming_step=trimming_step)
+                                        trimming_step=trimming_step, temperature=temperature)
     elif callable(model):
         return compute_fim_tensor_sample_function(model, in_theta_tensor, batch_size=batch_size,
                                                   score_vector=score_vector)
     else:
         raise Exception("")
-
-
-def compute_fim(in_model, in_theta_tensor, batch_size=128):
-    return compute_fim_tensor_model(in_model, in_theta_tensor, batch_size).mean(dim=0)
