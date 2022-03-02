@@ -17,16 +17,10 @@ python experiments/main.py --model_type MODEL_TYPE
 There three model types here and there configuration files: 
 * Linear [1] with Gaussion noise (experiments/config/linear.config.json).
 * Scale [1] with non-Gaussion noise (experiments/config/scale.config.json). 
-* Sinusoidal [2] with Gaussion noise, quantization and winner phase noise (experiments/config/sine.config.json). 
+* Sinusoidal with Gaussion noise, quantization and winner phase noise (experiments/config/sine.config.json). 
 
 # Contribution & Problems
 
 We welcomes contributions from anyone and if you find a bug or have a question, please create a GitHub issue.
 
-# Refernces
 
-[1]
-
-[2]
-
-[3]
