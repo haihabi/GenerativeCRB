@@ -105,26 +105,65 @@ def compare_gcrb_vs_crb_over_amp(in_model, in_dm, amp_array, phase, f_0, in_m, i
     return results_crb, results_gcrb
 
 
-phase_noise_results_dict = {0.5: {4: "prime-snow-1931",
-                                  0.1: "chocolate-silence-1827",
-                                  0.08: "eager-pond-1859",
-                                  0.06: "bumbling-voice-1829",
-                                  0.04: "rare-monkey-1846",
-                                  0.02: "efficient-glitter-1831",
-                                  0.01: "misunderstood-blaze-1870"},
-                            1.0: {0.1: "worldly-lake-1911",
-                                  0.08: "desert-yogurt-1912",
-                                  0.06: "unique-gorge-1913",
-                                  0.04: "icy-dust-1914",
-                                  0.02: "balmy-sea-1915",
-                                  0.01: "misty-valley-1916"},
-                            0.25: {0.1: "zany-morning-1905",
-                                   0.08: "volcanic-silence-1906",
-                                   0.06: "crimson-firefly-1907",
-                                   0.04: "legendary-wind-1908",
-                                   0.02: "divine-universe-1909",
-                                   0.01: "light-brook-1910"}
-                            }
+phase_noise_results_dict = {0.5: {
+    2.5: "prime-snow-1931",
+    2: "treasured-smoke-1934",
+    1.8: "misty-cloud-1951",
+    1.6: "lyric-violet-1950",
+    1.4: "elated-sky-1948",
+    1.2: "charmed-mountain-1943",
+    1: "ancient-microwave-1935",
+    0.8: "good-cherry-1936",
+    0.6: "unique-sea-1937",
+    0.4: "desert-deluge-1939",
+    0.2: "balmy-voice-1941",
+    0.1: "chocolate-silence-1827",
+    0.08: "eager-pond-1859",
+    0.06: "bumbling-voice-1829",
+    0.04: "rare-monkey-1846",
+    0.02: "efficient-glitter-1831",
+    0.01: "misunderstood-blaze-1870"},
+    1.0: {
+        2.5: "visionary-salad-1970",
+        2.4: "lucky-disco-1960",
+        # 2.2: "laced-sunset-1954",
+        2: "fragrant-planet-1938",
+        1.8: "bumbling-hill-1965",
+        1.6: "skilled-spaceship-1962",
+        1.4: "feasible-salad-1957",
+        1.2: "upbeat-firefly-1952",
+        1: "azure-meadow-1940",
+        0.8: "kind-mountain-1942",
+        0.6: "legendary-voice-1945",
+        0.4: "logical-fog-1947",
+        0.2: "dutiful-durian-1949",
+        0.1: "worldly-lake-1911",
+        0.08: "desert-yogurt-1912",
+        0.06: "unique-gorge-1913",
+        0.04: "icy-dust-1914",
+        0.02: "balmy-sea-1915",
+        0.01: "misty-valley-1916"},
+    0.25: {
+        2.5: "kind-capybara-1971",
+        2.4: "drawn-terrain-1967",
+        # 2.2: "wild-surf-1964",
+        # 2: "robust-pyramid-1953",
+        1.8: "crisp-glitter-1969",
+        1.6: "efficient-firefly-1968",
+        1.4: "warm-meadow-1966",
+        1.2: "quiet-donkey-1963",
+        1: "fresh-dawn-1955",
+        0.8: "magic-cherry-1956",
+        0.6: "crimson-morning-1958",
+        0.4: "spring-shadow-1959",
+        0.2: "splendid-frog-1961",
+        0.1: "zany-morning-1905",
+        0.08: "volcanic-silence-1906",
+        0.06: "crimson-firefly-1907",
+        0.04: "legendary-wind-1908",
+        0.02: "divine-universe-1909",
+        0.01: "light-brook-1910"}
+}
 quantization_results_dict = {0.25: {1: "sparkling-firebrand-1917",
                                     2: "different-wave-1899",
                                     3: "summer-wave-1902",
@@ -215,8 +254,8 @@ if __name__ == '__main__':
 
     run_quantization_full = False
     run_comapre2crb = False
-    phase_noise_results = True
-    quantization_results = False or run_quantization_full
+    phase_noise_results = False
+    quantization_results = True or run_quantization_full
     dual_results = False
     snr_results_phase = False
     base_line_run_name = snr_base_line[0.25]  # Linear Model
@@ -288,19 +327,19 @@ if __name__ == '__main__':
         y_axis_name = [r"$\mathrm{Var}(\hat{A})$", r"$\mathrm{Var}(\hat{f_0})$", r"$\mathrm{Var}(\hat{\phi})$"]
         for i in range(3):
             if i == 0:
-                amp_array = np.linspace(0.81, 1.19, num=50)
+                amp_array = np.linspace(0.81, 1.19, num=20)
                 x_axis_array = amp_array
                 results_crb, results_gcrb = compare_gcrb_vs_crb_over_amp(base_model, dm, amp_array, base_phase,
                                                                          base_f_0,
                                                                          m_samples, trimming_model)
             elif i == 1:
-                f_0_array = np.linspace(0.01, 0.49, num=50)
+                f_0_array = np.linspace(0.01, 0.49, num=20)
                 x_axis_array = f_0_array
-                results_crb, results_gcrb = compare_gcrb_vs_crb_over_freq(base_model, dm, base_amp, base_phase,
+                results_crb, results_gcrb = compare_gcrb_vs_crb_over_freq(base_model, dm, base_amp, 0,
                                                                           f_0_array,
                                                                           m_samples)
             elif i == 2:
-                phase_array = np.linspace(0.01, 2 * math.pi - 0.01, num=50)
+                phase_array = np.linspace(0.01, 2 * math.pi - 0.01, num=20)
                 x_axis_array = phase_array
                 results_crb, results_gcrb = compare_gcrb_vs_crb_over_phase(base_model, dm, base_amp, phase_array,
                                                                            base_f_0,
@@ -342,7 +381,7 @@ if __name__ == '__main__':
 
             results_x_axis, results_list = sweep_test(v)
             print(results_list)
-            plt.plot(np.asarray(results_x_axis), db(results_list), label=f"AWGN+Q, SNR={snr}dB")
+            plt.plot(np.asarray(results_x_axis), db(results_list), "o--", label=f"AWGN+Q, SNR={snr}dB")
             plt.plot(results_x_axis, db(np.ones(len(results_x_axis)) * base), "--",
                      label=f"AWGN, SNR={snr}dB")
         plt.legend(loc='upper left')
