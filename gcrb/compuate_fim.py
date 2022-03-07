@@ -1,6 +1,5 @@
 import torch
 import torch.autograd as autograd
-from experiments import constants
 import normflowpy as nf
 
 
@@ -9,10 +8,10 @@ def jacobian_single(out_gen, z, create_graph=False):
     for i in range(out_gen.shape[1]):
         gradients = autograd.grad(outputs=out_gen[:, i], inputs=z,
                                   grad_outputs=torch.ones(out_gen[:, i].size(), requires_grad=True).to(
-                                      constants.DEVICE),
+                                      z.device),
                                   create_graph=create_graph, retain_graph=True, only_inputs=True, allow_unused=True)[0]
         if gradients is None:  # In case there is not gradients
-            gradients = torch.zeros(z.shape, requires_grad=True).to(constants.DEVICE)
+            gradients = torch.zeros(z.shape, requires_grad=True).to(z.device)
         grad_list.append(gradients)
     return torch.stack(grad_list, dim=-1).transpose(-1, -2)
 
@@ -20,7 +19,7 @@ def jacobian_single(out_gen, z, create_graph=False):
 def compute_fim_tensor_model(in_model, in_theta_tensor, batch_size=128, score_vector=False, trimming_step=None,
                              temperature=1.0):
     theta_tensor = in_theta_tensor * torch.ones([batch_size, in_theta_tensor.shape[0]], requires_grad=True,
-                                                device=constants.DEVICE)
+                                                device=in_theta_tensor.device)
 
     def sample_func(in_batch_size, in_theta_tensor_hat: torch.Tensor):
         gamma = in_model.sample(in_batch_size, cond=in_theta_tensor_hat, temperature=temperature)
