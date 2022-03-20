@@ -1,11 +1,9 @@
 from gcrb.collector_fim import FisherInformationMatrixCollector
 from gcrb.compuate_fim import compute_fim_tensor
-import math
 from tqdm import tqdm
 
 
 def sampling_gfim(model, in_theta_tensor, m, batch_size=128, trimming_step=None, temperature: float = 1.0):
-    # iteration_step = int(math.ceil(m / batch_size))
     fim_collector = None
     with tqdm(total=m) as pbar:
         while fim_collector is None or fim_collector.i < m:
