@@ -23,7 +23,7 @@ def compute_fim_tensor_model(in_model, in_theta_tensor, batch_size=128, score_ve
                                                 device=constants.DEVICE)
 
     def sample_func(in_batch_size, in_theta_tensor_hat: torch.Tensor):
-        gamma = in_model.sample(in_batch_size, cond=in_theta_tensor_hat, temperature=temperature)
+        gamma = in_model.sample(in_batch_size, temperature=temperature, cond=in_theta_tensor_hat)
         gamma = gamma.detach()
         if trimming_step is not None:
             trimming_status = trimming_step(gamma)
