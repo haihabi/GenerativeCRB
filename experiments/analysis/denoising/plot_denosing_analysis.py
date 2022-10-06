@@ -22,6 +22,7 @@ for i in range(1):  # Device Loop
         plt.legend()
         plt.xlabel("ISO Level")
         plt.ylabel("NRMSE[dB]")
+plt.tight_layout()
 plt.savefig("different_scene.svg")
 plt.show()
 
@@ -65,5 +66,6 @@ for i in range(5):
         plt.ylabel("NRMSE[dB]")
         if len(sencrio_list) > 1:
             plt.title(f"Scene: {j + 1}")
+plt.tight_layout()
 plt.savefig("different_device_scene_one.svg")
 plt.show()

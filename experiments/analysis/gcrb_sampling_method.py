@@ -31,13 +31,13 @@ if __name__ == '__main__':
 
     m2r = data_model.get_model(model_type, generate_model_dict(dim, theta_dim))
     optimal_flow = m2r.get_optimal_model()
-    m2r.load_data_model("/data/projects/GenerativeCRB/datasets/models")
+    # m2r.load_data_model("/data/projects/GenerativeCRB/datasets/models")
+    m2r.load_data_model(r"C:\work\GenerativeCRB\experiments\analysis")
 
     theta = theta_value * torch.ones([theta_dim], device=constants.DEVICE)
     fim = np.linalg.inv(m2r.crb(theta).cpu().detach().numpy())
     crb = np.linalg.inv(fim)
     _results_iteration = []
-    eps_list = [0.1, 0.05, 0.01, 0.005]
     n_samples = [64e3, 128e3, 256e3, 512e3]
     for i in tqdm(range(n_iter)):
         res_eps = []
@@ -62,5 +62,6 @@ if __name__ == '__main__':
     plt.xlabel(r"$\mathrm{RE}(\theta)$")
     plt.grid()
     plt.legend()
-    plt.savefig("sampling_results.svg")
+    plt.tight_layout()
+    plt.savefig("sampling_results_spec.svg")
     plt.show()

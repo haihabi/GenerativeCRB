@@ -13,7 +13,10 @@ class SamplingMethod(Enum):
 
 
 def norm(x_array):
-    return np.sqrt(np.power(x_array, 2.0).sum(axis=(1, 2)))
+    # feb = np.sqrt(np.power(x_array, 2.0).sum(axis=(1, 2)))
+    spec = np.linalg.norm(x_array, axis=(1, 2), ord=2)
+    # print("a")
+    return spec
 
 
 def gcrb_empirical_error(in_gcrb, in_crb):

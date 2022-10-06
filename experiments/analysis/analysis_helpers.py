@@ -92,17 +92,17 @@ def load_wandb_run(run_name):
                                              neighbor_splitting=config.get("neighbor_splitting", False))
             model_flow.load_state_dict(torch.load(f"flow_best.pt", map_location=torch.device('cpu')))
             model_flow = model_flow.to(constants.DEVICE).eval()
-            data_mean_temp = [t.split("\n")[0].split("]]")[0].split("[[")[-1] for t in
-                              config["trimming_mean"].split(" ")]
-            data_mean = np.asarray([float(b) for b in data_mean_temp if len(b) > 0])
-            trimming_max = config["trimming_b_max"]
-            trimming_percentile = config["trimming_b_percentile"]
+            # data_mean_temp = [t.split("\n")[0].split("]]")[0].split("[[")[-1] for t in
+            #                   config["trimming_mean"].split(" ")]
+            # data_mean = np.asarray([float(b) for b in data_mean_temp if len(b) > 0])
+            # trimming_max = config["trimming_b_max"]
+            # trimming_percentile = config["trimming_b_percentile"]
             if model_type == data_model.ModelType.Linear:
                 if os.path.isfile(f"{dm.model_name}_model.pt"):
                     os.remove(f"{dm.model_name}_model.pt")
                 run.file(f"{dm.model_name}_model.pt").download()
                 dm.load_data_model("")
-            return model_flow, dm, config, gcrb.TrimmingParameters(data_mean, trimming_max, trimming_percentile)
+            return model_flow, dm, config, None #gcrb.TrimmingParameters(data_mean, trimming_max, trimming_percentile)
 
 
 def db(x):
