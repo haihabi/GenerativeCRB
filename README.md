@@ -9,7 +9,7 @@ The Cram\'er-Rao bound (CRB), a well-known lower bound on the performance of any
 ## Install
 
 To run this reposotiy, you will neeed the NormFlowPy package (https://github.com/haihabi/NormFlowPy) and the installion of the requirments file. 
-Note that to run GCRB on NoiseFlow[3] model you will also need to get PyTorch NoiseFlow-SiLU[1] from (https://github.com/haihabi/noise_flow) as for the training it is performaned in the NoiseFlow repo.
+Note that to run GCRB on NoiseFlow[2] model you will also need to get PyTorch NoiseFlow-SiLU[1] from (https://github.com/haihabi/noise_flow) as for the training it is performaned in the NoiseFlow repo.
 
 ## How To Run & Train
 '''
@@ -25,3 +25,8 @@ There three model types here and there configuration files:
 We welcomes contributions from anyone and if you find a bug or have a question, please create a GitHub issue.
 
 
+# References
+
+[1] Habi, Hai Victor, Hagit Messer, and Yoram Bresler. "Learning to Bound: A Generative Cram\'er-Rao Bound." arXiv preprint arXiv:2203.03695 (2022).
+
+[2] Abdelhamed, Abdelrahman, Marcus A. Brubaker, and Michael S. Brown. "Noise flow: Noise modeling with conditional normalizing flows." Proceedings of the IEEE/CVF International Conference on Computer Vision. 2019.
