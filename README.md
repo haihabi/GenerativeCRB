@@ -27,6 +27,6 @@ We welcomes contributions from anyone and if you find a bug or have a question, 
 
 # References
 
-[1] Habi, Hai Victor, Hagit Messer, and Yoram Bresler. "Learning to Bound: A Generative Cram\'er-Rao Bound." arXiv preprint arXiv:2203.03695 (2022).
+[1] Habi, Hai Victor, Hagit Messer, and Yoram Bresler. "Learning to Bound: A Generative Cramér-Rao Bound." IEEE Transactions on Signal Processing (2023).
 
 [2] Abdelhamed, Abdelrahman, Marcus A. Brubaker, and Michael S. Brown. "Noise flow: Noise modeling with conditional normalizing flows." Proceedings of the IEEE/CVF International Conference on Computer Vision. 2019.
