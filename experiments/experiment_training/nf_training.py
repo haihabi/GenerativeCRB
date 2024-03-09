@@ -17,7 +17,7 @@ def normalizing_flow_training(flow_model: NormalizingFlowModel, training_dataset
         for x, theta in tqdm(training_dataset):
             flow_optimizer.zero_grad()
             x, theta = x.to(constants.DEVICE), theta.to(constants.DEVICE)
-            loss = flow_model.nll_mean(x, cond=theta)
+            loss = flow_model.nll_mean(x, **{constants.THETA: theta})
             loss.backward()
             grad_norm = flow_optimizer.step()
 
@@ -26,7 +26,7 @@ def normalizing_flow_training(flow_model: NormalizingFlowModel, training_dataset
         print("Starting Validation Loop")
         for x, theta in tqdm(validation_dataset):
             x, theta = x.to(constants.DEVICE), theta.to(constants.DEVICE)
-            val_nll = flow_model.nll_mean(x, cond=theta)
+            val_nll = flow_model.nll_mean(x, **{constants.THETA: theta})
             trm.validation_batch({"loss": val_nll})
         flow_optimizer.end_epoch()
 

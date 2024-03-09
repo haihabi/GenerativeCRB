@@ -1,5 +1,6 @@
 from experiments import common
 
+THETA = "theta"
 DEVICE = common.get_working_device()
 DIM = "dim"
 BITWIDTH = "bit_width"

@@ -3,6 +3,8 @@ import normflowpy as nfp
 from experiments import constants
 from torch import nn
 from torch.distributions import MultivariateNormal
+
+from experiments.constants import THETA
 from experiments.models_architecture.sine_flow_layer import SineFlowLayer
 
 
@@ -20,6 +22,7 @@ def append_k_blocks(flows, n_flow_blocks, affine_coupling, spline_flow, generate
         if affine_inject:
             flows.append(
                 nfp.flows.AffineInjector(x_shape=input_vector_shape,
+                                         cond_name_list=[THETA],
                                          condition_vector_size=condition_embedding_size, n_hidden=hidden_size_cond,
                                          net_class=nfp.base_nets.generate_mlp_class(n_layer=n_layer_cond,
                                                                                     non_linear_function=generate_nl,

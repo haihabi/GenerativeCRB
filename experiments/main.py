@@ -106,6 +106,10 @@ def calculate_trimming_parameter(in_dataset, p):
     return gcrb.calculate_trimming_parameters(data_matrix, p=p)
 
 
+def fim_trainer(flow_model, training_dataset_loader, validation_dataset_loader, run_parameters):
+    pass
+
+
 if __name__ == '__main__':
     # TODO: refactor the main code
     cr = config()
@@ -139,7 +143,6 @@ if __name__ == '__main__':
     transform = None
     if dm.is_quantized:
         print("Running quantized model")
-
         transform = transforms.Compose([
             nfp.preprocess.NumPyArray2Tensor(),
             nfp.preprocess.Dequatization(bit_width=run_parameters.q_bit_width, threshold_max=run_parameters.q_threshold,
@@ -209,3 +212,7 @@ if __name__ == '__main__':
                                                     n_validation_point=run_parameters.n_validation_point,
                                                     m=run_parameters.m, trimming_function=trimming_module)
     check_final(best_flow_model)  # Check Best Flow
+    # TODO: Add FIM Training and Validation
+    if run_parameters.train_fim:
+        fim_trainer(flow_model, training_dataset_loader, validation_dataset_loader, run_parameters)
+        
